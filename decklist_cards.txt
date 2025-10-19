@@ -1,0 +1,122 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+'
+', 
+*
+/
+//
+//
+:
+<
+=
+=
+>
+?
+_
+_
+|
+🎊 All cards downloaded successfully!
+Archdruid's Charm
+Bane of Progress
+Bant Panorama
+Beast Within
+Blackblade Reforged
+Brokers Hideout
+Cabaretti Courtyard
+  - {card}
+  ❌ Card not found: {card_name} (HTTP {response.status_code})
+Case of the Locked Hothouse
+Conduit of Worlds
+Cultivate
+Cultivator Colossus
+Endless Atlas
+Entish Restoration
+  ❌ Error downloading {card_name}: {e}
+Evolving Wilds
+❌ Failed downloads: {len(failed_downloads)}
+  ❌ Failed to download image for: {card_name}
+Fog
+Forest
+Genji Glove
+Harmonize
+Harrow
+Horizon Explorer
+https://api.scryfall.com/cards/named?fuzzy={encoded_name}
+images
+Jumbo Cactuar
+Jund Panorama
+Kodama's Reach
+__main__
+Main function to download all cards from the decklist
+Mightform Harmonizer
+\n
+Naturalize
+Nature's Claim
+Naya Panorama
+Nevinyrral's Disk
+\n[{i}/{len(decklist)}] {card_name}
+Nissa, Vital Force
+  ❌ No image found for: {card_name}
+Ohran Frostfang
+Oracle of Mul Daya
+Quilled Greatwurm
+Rampaging Baloths
+Rampant Growth
+Ram Through
+Reshape the Earth
+Ride the Shoopuf
+Rishkar's Expertise
+Riveteers Overlook
+Rogue's Passage
+{safe_name}.jpg
+Sakura-Tribe Scout
+Sanitize card name for use as filename
+  ✅ Saved: {filename}
+Scale Up
+Scavenger Grounds
+Scute Swarm
+🔍 Searching for: {card_name}
+Seer's Sundial
+Skyclave Pick-Axe
+Skyshroud Claim
+Smoke Bomb
+Sol Ring
+Staff of Titania
+✅ Successful: {successful_downloads}/{len(decklist)}
+Summon: Titan
+Swiftfoot Boots
+Sword of the Animist
+Tempt with Discovery
+Terramorphic Expanse
+Thickest in the Thicket
+Threats Undetected
+Three Visits
+Tifa Lockhart
+Tifa's Limit Break
+Tireless Tracker
+Titania, Nature's Force
+Titania's Command
+Toski, Bearer of Secrets
+Traverse the Outlands
+Tribute to the World Tree
+Unnatural Growth
+Vibrant Cityscape
+Walk-In Closet // Forgotten Cellar
+War Room
+Wayward Swordtooth
+Whirlwind
+Will of the Sultai
+Wrenn and Seven
+Zendikar's Roil
