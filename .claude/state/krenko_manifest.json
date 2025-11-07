@@ -1,0 +1,514 @@
+{
+  "timestamp": "2025-11-06T21:52:00",
+  "decklist_path": "decklists/krenko_mob_boss.txt",
+  "total_cards": 100,
+  "successful": 100,
+  "failed": 0,
+  "cards": [
+    {
+      "name": "Krenko, Mob Boss",
+      "path": "images/Krenko, Mob Boss.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mountain",
+      "path": "images/Mountain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Command Tower",
+      "path": "images/Command Tower.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Path of Ancestry",
+      "path": "images/Path of Ancestry.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Myriad Landscape",
+      "path": "images/Myriad Landscape.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Nykthos, Shrine to Nyx",
+      "path": "images/Nykthos, Shrine to Nyx.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Castle Embereth",
+      "path": "images/Castle Embereth.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Den of the Bugbear",
+      "path": "images/Den of the Bugbear.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Forgotten Cave",
+      "path": "images/Forgotten Cave.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Smoldering Crater",
+      "path": "images/Smoldering Crater.jpg",
+      "status": "success"
+    },
+    {
+      "name": "War Room",
+      "path": "images/War Room.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Buried Ruin",
+      "path": "images/Buried Ruin.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Inventors' Fair",
+      "path": "images/Inventors Fair.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Reliquary Tower",
+      "path": "images/Reliquary Tower.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Sol Ring",
+      "path": "images/Sol Ring.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Arcane Signet",
+      "path": "images/Arcane Signet.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mind Stone",
+      "path": "images/Mind Stone.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Fellwar Stone",
+      "path": "images/Fellwar Stone.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Fire Diamond",
+      "path": "images/Fire Diamond.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Ruby Medallion",
+      "path": "images/Ruby Medallion.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Worn Powerstone",
+      "path": "images/Worn Powerstone.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Thran Dynamo",
+      "path": "images/Thran Dynamo.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Gilded Lotus",
+      "path": "images/Gilded Lotus.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Wayfarer's Bauble",
+      "path": "images/Wayfarers Bauble.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Darksteel Ingot",
+      "path": "images/Darksteel Ingot.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Thought Vessel",
+      "path": "images/Thought Vessel.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Skullclamp",
+      "path": "images/Skullclamp.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Goblin Ringleader",
+      "path": "images/Goblin Ringleader.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Sensation Gorger",
+      "path": "images/Sensation Gorger.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Siege-Gang Commander",
+      "path": "images/Siege-Gang Commander.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Realmwalker",
+      "path": "images/Realmwalker.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Herald's Horn",
+      "path": "images/Heralds Horn.jpg",
+      "status": "success"
+    },
+    {
+      "name": "The Immortal Sun",
+      "path": "images/The Immortal Sun.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Vanquisher's Banner",
+      "path": "images/Vanquishers Banner.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Krenko, Tin Street Kingpin",
+      "path": "images/Krenko, Tin Street Kingpin.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mogg War Marshal",
+      "path": "images/Mogg War Marshal.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Dragon Fodder",
+      "path": "images/Dragon Fodder.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Hordeling Outburst",
+      "path": "images/Hordeling Outburst.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Krenko's Command",
+      "path": "images/Krenkos Command.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Beetleback Chief",
+      "path": "images/Beetleback Chief.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Siege-Gang Commander",
+      "path": "images/Siege-Gang Commander.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Goblin Instigator",
+      "path": "images/Goblin Instigator.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Skirk Prospector",
+      "path": "images/Skirk Prospector.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Pashalik Mons",
+      "path": "images/Pashalik Mons.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Goblin Chieftain",
+      "path": "images/Goblin Chieftain.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Goblin Warchief",
+      "path": "images/Goblin Warchief.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Goblin King",
+      "path": "images/Goblin King.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Goblin Trashmaster",
+      "path": "images/Goblin Trashmaster.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Goblin Cratermaker",
+      "path": "images/Goblin Cratermaker.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Skirk Fire Marshal",
+      "path": "images/Skirk Fire Marshal.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Goblin Sharpshooter",
+      "path": "images/Goblin Sharpshooter.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Conspicuous Snoop",
+      "path": "images/Conspicuous Snoop.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Kiki-Jiki, Mirror Breaker",
+      "path": "images/Kiki-Jiki, Mirror Breaker.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Goblin Matron",
+      "path": "images/Goblin Matron.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Goblin Recruiter",
+      "path": "images/Goblin Recruiter.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Goblin Chirurgeon",
+      "path": "images/Goblin Chirurgeon.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Arms Dealer",
+      "path": "images/Arms Dealer.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Gempalm Incinerator",
+      "path": "images/Gempalm Incinerator.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Clickslither",
+      "path": "images/Clickslither.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Impact Tremors",
+      "path": "images/Impact Tremors.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Purphoros, God of the Forge",
+      "path": "images/Purphoros, God of the Forge.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Shared Animosity",
+      "path": "images/Shared Animosity.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Coat of Arms",
+      "path": "images/Coat of Arms.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Banner of Kinship",
+      "path": "images/Banner of Kinship.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Goblin Bombardment",
+      "path": "images/Goblin Bombardment.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Brightstone Ritual",
+      "path": "images/Brightstone Ritual.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Muxus, Goblin Grandee",
+      "path": "images/Muxus, Goblin Grandee.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Lightning Greaves",
+      "path": "images/Lightning Greaves.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Swiftfoot Boots",
+      "path": "images/Swiftfoot Boots.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Deflecting Swat",
+      "path": "images/Deflecting Swat.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Red Elemental Blast",
+      "path": "images/Red Elemental Blast.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Pyroblast",
+      "path": "images/Pyroblast.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Chaos Warp",
+      "path": "images/Chaos Warp.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Valakut Awakening // Valakut Stoneforge",
+      "paths": [
+        "images/Valakut Awakening __ Valakut Stoneforge_face1.jpg",
+        "images/Valakut Awakening __ Valakut Stoneforge_face2.jpg"
+      ],
+      "path": "images/Valakut Awakening __ Valakut Stoneforge_face1.jpg",
+      "status": "success",
+      "faces": 2
+    },
+    {
+      "name": "Blasphemous Act",
+      "path": "images/Blasphemous Act.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Vandalblast",
+      "path": "images/Vandalblast.jpg",
+      "status": "success"
+    },
+    {
+      "name": "By Force",
+      "path": "images/By Force.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Abrade",
+      "path": "images/Abrade.jpg",
+      "status": "success"
+    }
+  ]
+}
