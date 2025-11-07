@@ -1,0 +1,384 @@
+{
+  "timestamp": "2025-11-07T08:50:52",
+  "decklist_path": "decklists/frog_tribal.txt",
+  "total_cards": 75,
+  "successful": 75,
+  "failed": 0,
+  "cards": [
+    {
+      "name": "Clement, the Worrywort",
+      "path": "images/Clement, the Worrywort.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Amphibian Downpour",
+      "path": "images/Amphibian Downpour.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Bellowing Crier",
+      "path": "images/Bellowing Crier.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Bloated Toad",
+      "path": "images/Bloated Toad.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Burrog Befuddler",
+      "path": "images/Burrog Befuddler.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Clifftop Lookout",
+      "path": "images/Clifftop Lookout.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Crocanura",
+      "path": "images/Crocanura.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Doc Aurlock, Grizzled Genius",
+      "path": "images/Doc Aurlock, Grizzled Genius.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Dour Port-Mage",
+      "path": "images/Dour Port-Mage.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Dreamdew Entrancer",
+      "path": "images/Dreamdew Entrancer.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Eternal Witness",
+      "path": "images/Eternal Witness.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Frilled Mystic",
+      "path": "images/Frilled Mystic.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Frog-Squirrels",
+      "path": "images/Frog-Squirrels.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Froghemoth",
+      "path": "images/Froghemoth.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Grolnok, the Omnivore",
+      "path": "images/Grolnok, the Omnivore.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Halo Hopper",
+      "path": "images/Halo Hopper.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Haze Frog",
+      "path": "images/Haze Frog.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Jade Avenger",
+      "path": "images/Jade Avenger.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Laboratory Maniac",
+      "path": "images/Laboratory Maniac.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Lilysplash Mentor",
+      "path": "images/Lilysplash Mentor.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Long River Lurker",
+      "path": "images/Long River Lurker.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Mistbreath Elder",
+      "path": "images/Mistbreath Elder.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Murkfiend Liege",
+      "path": "images/Murkfiend Liege.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Plaxcaster Frogling",
+      "path": "images/Plaxcaster Frogling.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Poison Dart Frog",
+      "path": "images/Poison Dart Frog.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Pollywog Prodigy",
+      "path": "images/Pollywog Prodigy.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Pond Prophet",
+      "path": "images/Pond Prophet.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Rampant Frogantua",
+      "path": "images/Rampant Frogantua.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Reclamation Sage",
+      "path": "images/Reclamation Sage.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Roaming Throne",
+      "path": "images/Roaming Throne.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Splash Lasher",
+      "path": "images/Splash Lasher.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Spore Frog",
+      "path": "images/Spore Frog.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Spring Splasher",
+      "path": "images/Spring Splasher.jpg",
+      "status": "success"
+    },
+    {
+      "name": "The Thirteenth Doctor",
+      "path": "images/The Thirteenth Doctor.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Treeguard Duo",
+      "path": "images/Treeguard Duo.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Trollbred Guardian",
+      "path": "images/Trollbred Guardian.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Twenty-Toed Toad",
+      "path": "images/Twenty-Toed Toad.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Valley Mightcaller",
+      "path": "images/Valley Mightcaller.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Whiptongue Frog",
+      "path": "images/Whiptongue Frog.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Aqueous Form",
+      "path": "images/Aqueous Form.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Druid Class",
+      "path": "images/Druid Class.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Fortune Teller's Talent",
+      "path": "images/Fortune Tellers Talent.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Frogify",
+      "path": "images/Frogify.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Impostor Syndrome",
+      "path": "images/Impostor Syndrome.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Imprisoned in the Moon",
+      "path": "images/Imprisoned in the Moon.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Kasmina's Transmutation",
+      "path": "images/Kasminas Transmutation.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Kindred Discovery",
+      "path": "images/Kindred Discovery.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Leyline of Anticipation",
+      "path": "images/Leyline of Anticipation.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Propaganda",
+      "path": "images/Propaganda.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Simic Ascendancy",
+      "path": "images/Simic Ascendancy.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Wild Growth",
+      "path": "images/Wild Growth.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Witness Protection",
+      "path": "images/Witness Protection.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Arcane Signet",
+      "path": "images/Arcane Signet.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Banner of Kinship",
+      "path": "images/Banner of Kinship.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Bloodline Pretender",
+      "path": "images/Bloodline Pretender.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Commander's Sphere",
+      "path": "images/Commanders Sphere.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Door of Destinies",
+      "path": "images/Door of Destinies.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Elixir of Immortality",
+      "path": "images/Elixir of Immortality.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Herald's Horn",
+      "path": "images/Heralds Horn.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Papercraft Decoy",
+      "path": "images/Papercraft Decoy.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Patchwork Banner",
+      "path": "images/Patchwork Banner.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Perpetual Timepiece",
+      "path": "images/Perpetual Timepiece.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Sol Ring",
+      "path": "images/Sol Ring.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Swiftfoot Boots",
+      "path": "images/Swiftfoot Boots.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Vanquisher's Banner",
+      "path": "images/Vanquishers Banner.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Wand of Vertebrae",
+      "path": "images/Wand of Vertebrae.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Whispersilk Cloak",
+      "path": "images/Whispersilk Cloak.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Eaten by Piranhas",
+      "path": "images/Eaten by Piranhas.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Seal of Primordium",
+      "path": "images/Seal of Primordium.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Command Beacon",
+      "path": "images/Command Beacon.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Lumbering Falls",
+      "path": "images/Lumbering Falls.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Oakhollow Village",
+      "path": "images/Oakhollow Village.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Rogue's Passage",
+      "path": "images/Rogues Passage.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Three Tree City",
+      "path": "images/Three Tree City.jpg",
+      "status": "success"
+    },
+    {
+      "name": "Three Tree Scribe",
+      "path": "images/Three Tree Scribe.jpg",
+      "status": "success"
+    }
+  ]
+}
