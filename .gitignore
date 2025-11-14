@@ -73,3 +73,9 @@ tests/*.pdf
 
 # Spec directories (feature planning)
 specs/
+
+# Generated outputs
+outputs/
+decklists/*.txt
+.claude/cards/
+.claude/downloads/
