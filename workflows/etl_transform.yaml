@@ -1,0 +1,27 @@
+name: "etl_transform"
+description: "ETL Transform phase - Convert HTML to structured format"
+version: "1.0"
+
+inputs:
+  html_file:
+    type: string
+    required: true
+    description: "Path to HTML file to transform"
+
+  output_format:
+    type: string
+    required: false
+    description: "Output format (default: markdown)"
+
+steps:
+  - name: transform
+    skill: data/html-to-markdown
+    args:
+      input_file: "{{inputs.html_file}}"
+      output_format: "{{inputs.output_format}}"
+    outputs:
+      transformed_file: "/tmp/transformed.md"
+
+outputs:
+  transformed_file: "{{steps.transform.outputs.transformed_file}}"
+  status: "success"

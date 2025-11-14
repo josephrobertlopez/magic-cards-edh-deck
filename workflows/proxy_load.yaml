@@ -1,0 +1,27 @@
+name: "proxy_load"
+description: "Load stage - Convert PPTX to print-ready PDF"
+version: "1.0"
+
+inputs:
+  pptx_path:
+    type: string
+    required: true
+    description: "Input PPTX file"
+
+  output_dir:
+    type: string
+    required: false
+    default: "outputs"
+    description: "Output directory for PDF"
+
+steps:
+  - name: convert_pdf
+    skill: pdf/convert-to-pdf
+    args:
+      source_path: "{{inputs.pptx_path}}"
+      output_dir: "{{inputs.output_dir}}"
+    outputs:
+      pdf_file: "{{inputs.output_dir}}/output.pdf"
+
+outputs:
+  pdf_file: "{{steps.convert_pdf.outputs.pdf_file}}"

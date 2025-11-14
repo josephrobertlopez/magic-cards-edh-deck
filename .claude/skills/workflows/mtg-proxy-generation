@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+"""
+MTG Proxy Generation Workflow
+
+Domain-specific workflow that composes generic A2A skills.
+"""
+
+import sys
+import os
+import asyncio
+
+repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, repo_root)
+
+from a2a_orchestrator.orchestrator import load_yaml_workflow, execute_workflow
+
+
+async def main():
+    if len(sys.argv) < 2:
+        print("Error: decklist_path required", file=sys.stderr)
+        print()
+        print("Usage: /workflows/mtg-proxy-generation <decklist> [template] [--no-pdf]")
+        print()
+        print("Examples:")
+        print("  /workflows/mtg-proxy-generation decklists/frog_tribal.txt")
+        print("  /workflows/mtg-proxy-generation decklists/my_deck.txt template_custom.pptx")
+        print("  /workflows/mtg-proxy-generation decklists/test.txt --no-pdf")
+        sys.exit(1)
+
+    decklist_path = sys.argv[1]
+    template_path = sys.argv[2] if len(sys.argv) > 2 and not sys.argv[2].startswith('--') else "template_2v6h_FIXED.pptx"
+    no_pdf = '--no-pdf' in sys.argv
+
+    workflow_path = os.path.join(repo_root, "workflows/mtg-proxy-pipeline.yaml")
+    workflow = load_yaml_workflow(workflow_path)
+
+    result = await execute_workflow(workflow, {
+        "decklist_path": decklist_path,
+        "template_path": template_path,
+        "no_pdf": no_pdf
+    })
+
+    print(result.get('pdf') if not no_pdf else result.get('pptx'))
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

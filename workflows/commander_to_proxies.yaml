@@ -1,0 +1,52 @@
+name: "commander_to_proxies"
+description: "Complete workflow: Search commander → Extract decklist → Generate proxies (PPTX + PDF)"
+version: "1.0"
+
+inputs:
+  commander_name:
+    type: string
+    required: true
+    description: "Commander name (e.g., 'krenko-mob-boss')"
+  
+  max_cards:
+    type: integer
+    required: false
+    default: 100
+    description: "Maximum cards to extract"
+
+steps:
+  # Step 1: Fetch commander page from EDHREC
+  - name: fetch_page
+    skill: data/fetch-web-page
+    args:
+      url: "https://edhrec.com/commanders/{{inputs.commander_name}}"
+      output_dir: ".claude/downloads"
+    outputs:
+      html_path: ".claude/downloads/commanders_{{inputs.commander_name}}.html"
+
+  # Step 2: Extract card names from HTML
+  - name: extract_cards
+    skill: data/extract-cards-from-html
+    args:
+      html_file: "{{steps.fetch_page.outputs.html_path}}"
+      output_file: "decklists/{{inputs.commander_name}}_extracted.txt"
+      max_cards: "{{inputs.max_cards}}"
+    outputs:
+      decklist_path: "decklists/{{inputs.commander_name}}_extracted.txt"
+
+  # Step 3: Generate proxies (calls existing ETL workflow)
+  - name: generate_proxies
+    workflow: workflows/proxy_pipeline_composed.yaml
+    args:
+      decklist_path: "{{steps.extract_cards.outputs.decklist_path}}"
+    outputs:
+      manifest: "{{result.manifest}}"
+      pptx_file: "{{result.pptx_file}}"
+      pdf_file: "{{result.pdf_file}}"
+
+outputs:
+  commander: "{{inputs.commander_name}}"
+  decklist: "{{steps.extract_cards.outputs.decklist_path}}"
+  manifest: "{{steps.generate_proxies.outputs.manifest}}"
+  pptx: "{{steps.generate_proxies.outputs.pptx_file}}"
+  pdf: "{{steps.generate_proxies.outputs.pdf_file}}"

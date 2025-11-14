@@ -1,0 +1,49 @@
+name: test-a2a-pipeline
+description: Test A2A orchestration with simple 3-card deck
+
+inputs:
+  decklist_path:
+    type: string
+    required: true
+    description: Path to decklist file
+  template_path:
+    type: string
+    required: true
+    description: Template PPTX file
+  no_pdf:
+    type: boolean
+    required: false
+    default: false
+    description: Skip PDF conversion
+
+steps:
+  # Step 1: Fetch cards from Scryfall
+  - name: fetch-cards
+    skill: data/fetch-from-api
+    input:
+      decklist_path: ${input.decklist_path}
+      output_dir: images
+    output_var: fetch_result
+
+  # Step 2: Generate PPTX presentation
+  - name: generate-presentation
+    skill: presentation/place-images-in-pptx
+    input:
+      manifest_path: ${fetch_result.result.manifest_path}
+      template_path: ${input.template_path}
+      output_path: outputs/test_a2a.pptx
+    output_var: pptx_result
+
+  # Step 3: Convert to PDF (conditional)
+  - name: convert-to-pdf
+    skill: pdf/convert-to-pdf
+    input:
+      source_path: ${pptx_result.result.pptx_path}
+      output_dir: outputs
+    output_var: pdf_result
+    condition: ${input.no_pdf} == false
+
+output:
+  pptx: ${pptx_result.result.pptx_path}
+  pdf: ${pdf_result.result.pdf_path}
+  manifest: ${fetch_result.result.manifest_path}

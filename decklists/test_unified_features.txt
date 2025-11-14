@@ -1,0 +1,9 @@
+// Test DFC handling
+Delver of Secrets // Insectile Aberration
+
+// Test numbered suffixes (duplicate basic lands)
+Forest
+Forest
+Forest
+Island
+Island
