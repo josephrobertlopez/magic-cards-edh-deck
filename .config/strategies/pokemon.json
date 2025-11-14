@@ -1,0 +1,15 @@
+{
+  "domain": "pokemon",
+  "version": "1.0",
+  "detection_patterns": {
+    "starter_pokemon": ["Bulbasaur", "Charmander", "Squirtle", "Pikachu"],
+    "legendary_pokemon": ["Mewtwo", "Lugia", "Rayquaza", "Arceus"]
+  },
+  "category_patterns": {
+    "Grass": ["Bulbasaur", "Oddish", "Bellsprout"],
+    "Fire": ["Charmander", "Vulpix", "Growlithe"],
+    "Water": ["Squirtle", "Psyduck", "Magikarp"],
+    "Electric": ["Pikachu", "Voltorb", "Magnemite"]
+  },
+  "inference_rules": []
+}

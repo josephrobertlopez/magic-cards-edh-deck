@@ -1,0 +1,28 @@
+{
+  "knowledge_base": [
+    {
+      "keywords": ["card", "size", "poker", "playing", "mtg", "magic"],
+      "fact": "Standard playing cards and MTG cards measure 2.5 inches × 3.5 inches (63.5mm × 88.9mm).",
+      "title": "Playing Card Dimensions",
+      "confidence": 0.95
+    },
+    {
+      "keywords": ["pokemon", "sprite", "size"],
+      "fact": "Pokemon sprite images from PokeAPI are typically 96×96 pixels.",
+      "title": "Pokemon Sprite Dimensions",
+      "confidence": 0.90
+    },
+    {
+      "keywords": ["dpi", "print", "quality"],
+      "fact": "300 DPI is standard for print, 600 DPI for high-quality archival prints.",
+      "title": "Print Resolution Standards",
+      "confidence": 0.90
+    },
+    {
+      "keywords": ["pixels", "dimension", "convert"],
+      "fact": "At 300 DPI: 1 inch = 300 pixels, 2.5 inches = 750 pixels, 3.5 inches = 1050 pixels.",
+      "title": "Pixel to Inch Conversion",
+      "confidence": 0.95
+    }
+  ]
+}

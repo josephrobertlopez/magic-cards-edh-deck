@@ -1,0 +1,25 @@
+name: test-simple
+description: Simple test workflow to validate orchestrator
+
+inputs:
+  test_input:
+    type: string
+    required: true
+
+steps:
+  - name: step-one
+    skill: data/fetch-web-page
+    input:
+      urls: ["https://example.com"]
+      output_dir: "downloads/html"
+    output_var: html_manifest
+
+  - name: step-two
+    skill: data/html-to-markdown
+    input:
+      html_files: ${html_manifest.pages}
+      output_dir: "downloads/markdown"
+    output_var: markdown_files
+
+output:
+  result: ${markdown_files}

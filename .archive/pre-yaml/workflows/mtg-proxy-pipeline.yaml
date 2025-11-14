@@ -1,0 +1,78 @@
+name: mtg-proxy-generation
+description: Generate MTG card proxies from decklist
+
+inputs:
+  decklist_path:
+    type: string
+    required: true
+    description: Path to MTG decklist file
+  template_path:
+    type: string
+    required: false
+    default: template_2v6h_FIXED.pptx
+    description: Template PPTX file
+  no_pdf:
+    type: boolean
+    required: false
+    default: false
+    description: Skip PDF conversion
+
+steps:
+  # EXTRACT: Fetch card images from Scryfall
+  - name: extract-cards
+    skill: data/fetch-from-api
+    input:
+      api_config:
+        base_url: "https://api.scryfall.com"
+        endpoint: "/cards/named"
+        query_param: "fuzzy"
+        rate_limit: 10
+      items: ${input.decklist_path}
+      output_dir: "images"
+      cache: true
+    output_var: card_manifest
+    on_error: halt
+
+  # TRANSFORM 1: Resize/rotate images for PPTX slots
+  - name: transform-images
+    skill: image/manipulate-images
+    input:
+      operation: "resize"
+      images: ${card_manifest.images}
+      params:
+        target_width: 150
+        preserve_aspect: true
+        auto_rotate: true
+      output_dir: "processed"
+    output_var: processed_images
+    on_error: halt
+
+  # TRANSFORM 2: Place images in PPTX template
+  - name: generate-presentation
+    skill: presentation/place-images-in-pptx
+    input:
+      template_path: ${input.template_path}
+      image_manifest: ${processed_images}
+      output_path: outputs/${input.decklist_path}.pptx
+      layout_config:
+        min_slot_size: 1.0
+        aspect_fit: true
+        auto_rotate: true
+        background_color: white
+    output_var: pptx_path
+    on_error: halt
+
+  # LOAD: Convert to PDF
+  - name: convert-to-pdf
+    skill: pdf/convert-to-pdf
+    input:
+      source_path: ${pptx_path}
+      output_dir: outputs
+    output_var: pdf_path
+    condition: ${input.no_pdf} == false
+    on_error: halt
+
+output:
+  pptx: ${pptx_path}
+  pdf: ${pdf_path}
+  manifest: ${card_manifest}

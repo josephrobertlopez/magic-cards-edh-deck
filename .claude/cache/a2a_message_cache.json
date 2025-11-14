@@ -1,0 +1,75 @@
+{
+  "data/fetch-web-page:716aca7f126c111e": {
+    "cache_key": "data/fetch-web-page:716aca7f126c111e",
+    "request_hash": "716aca7f126c111ea1fd6353f65cb28c30e83702fee159c20e6c3762802726a3",
+    "response_data": {
+      "result": {
+        "status": "success",
+        "manifest_path": ".claude/state/web_fetch_manifest.json",
+        "pages": [
+          {
+            "url": "https://edhrec.com/commanders/tatsunari-the-deserter",
+            "status": "failed",
+            "error": "404 Client Error: Not Found for url: https://edhrec.com/commanders/tatsunari-the-deserter"
+          }
+        ],
+        "total": 1,
+        "successful": 0,
+        "failed": 1
+      }
+    },
+    "timestamp": 1763091143.5790508,
+    "ttl_seconds": 600,
+    "hit_count": 1
+  },
+  "data/extract-cards-from-html:c0bc4a8913f14674": {
+    "cache_key": "data/extract-cards-from-html:c0bc4a8913f14674",
+    "request_hash": "c0bc4a8913f14674103983c458cbce5a5aca74b3177bb73f10066d31b3d7fdde",
+    "response_data": {
+      "error": "Subprocess failed with exit code 1"
+    },
+    "timestamp": 1763091143.6027544,
+    "ttl_seconds": 3600,
+    "hit_count": 1
+  },
+  "data/fetch-from-api:a9f5b2736f37315d": {
+    "cache_key": "data/fetch-from-api:a9f5b2736f37315d",
+    "request_hash": "a9f5b2736f37315db141da201e62e158c24769e2202a6aad2002b3339f399ad8",
+    "response_data": {
+      "error": "Decklist file not found: decklists/tatsunari-the-deserter_extracted.txt"
+    },
+    "timestamp": 1763091143.816101,
+    "ttl_seconds": 600,
+    "hit_count": 1
+  },
+  "presentation/place-images-in-pptx:1bafc3332c3edb28": {
+    "cache_key": "presentation/place-images-in-pptx:1bafc3332c3edb28",
+    "request_hash": "1bafc3332c3edb28ad206e340557cebde4826e4933ec0e3941a1e925c602cfc6",
+    "response_data": {
+      "result": {
+        "status": "success",
+        "pptx_path": "outputs/proxies.pptx",
+        "manifest": ".claude/state/manifest.json",
+        "template": "template_2v6h_FIXED.pptx"
+      }
+    },
+    "timestamp": 1763091144.0234885,
+    "ttl_seconds": 3600,
+    "hit_count": 1
+  },
+  "pdf/convert-to-pdf:bff38c83d974ee0b": {
+    "cache_key": "pdf/convert-to-pdf:bff38c83d974ee0b",
+    "request_hash": "bff38c83d974ee0bcbe1271523ba7e0bc9d1914f21a922e588dd9cf54d361cdb",
+    "response_data": {
+      "result": {
+        "status": "success",
+        "pdf_path": "/home/joey/Documents/GitHub/magic-cards-edh-deck/outputs/proxies.pdf",
+        "source": "outputs/proxies.pptx",
+        "output_dir": "outputs"
+      }
+    },
+    "timestamp": 1763091145.0274212,
+    "ttl_seconds": 3600,
+    "hit_count": 1
+  }
+}
