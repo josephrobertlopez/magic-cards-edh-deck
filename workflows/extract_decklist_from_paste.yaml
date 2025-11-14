@@ -1,0 +1,49 @@
+name: "Extract Decklist from Pasted HTML"
+description: "Extract decklist from HTML content pasted by user (manual workflow)"
+version: "1.0"
+
+inputs:
+  html_file:
+    type: string
+    required: true
+    description: "Path to saved HTML file from browser paste"
+
+  selector:
+    type: string
+    required: true
+    description: "CSS selector for card items (e.g., '.card-item')"
+
+  output_file:
+    type: string
+    required: true
+    description: "Path to save extracted decklist.txt"
+
+steps:
+  - name: extract_cards
+    skill: data/extract-content-from-html
+    args:
+      content_file: "{{inputs.html_file}}"
+      extract_type: "list"
+      selector: "{{inputs.selector}}"
+      output: "{{inputs.output_file}}"
+    outputs:
+      decklist: "{{inputs.output_file}}"
+
+outputs:
+  decklist_file: "{{steps.extract_cards.outputs.decklist}}"
+  card_count: "{{steps.extract_cards.result.count}}"
+
+usage_example: |
+  # User workflow:
+  # 1. Visit deck site (e.g., Moxfield, Archidekt, MTGDecks.net)
+  # 2. Open browser DevTools (F12 → Elements tab)
+  # 3. Find card list container element
+  # 4. Right-click → Copy → Copy outerHTML
+  # 5. Paste into /tmp/deck.html
+  # 6. Run workflow:
+
+  python3 a2a_orchestrator/workflow_runner.py \
+    workflows/extract_decklist_from_paste.yaml \
+    --html_file /tmp/deck.html \
+    --selector ".card-row" \
+    --output_file /tmp/extracted_decklist.txt

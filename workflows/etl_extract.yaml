@@ -1,0 +1,27 @@
+name: "etl_extract"
+description: "ETL Extract phase - Fetch HTML content from URL"
+version: "1.0"
+
+inputs:
+  url:
+    type: string
+    required: true
+    description: "URL to fetch HTML from"
+
+  output_file:
+    type: string
+    required: false
+    description: "Where to save fetched HTML (default: /tmp/extracted.html)"
+
+steps:
+  - name: fetch
+    skill: web/fetch-content
+    args:
+      url: "{{inputs.url}}"
+      output: "{{inputs.output_file}}"
+    outputs:
+      html_file: "{{inputs.output_file}}"
+
+outputs:
+  extracted_file: "{{steps.fetch.outputs.html_file}}"
+  status: "success"

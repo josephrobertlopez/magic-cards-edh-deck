@@ -1,0 +1,98 @@
+# ETL Workflow: Magic Card Proxy Generation Pipeline
+#
+# This workflow orchestrates three skills to transform a decklist into a printer-ready PDF:
+#   EXTRACT:   fetch-cards         (download card data from Scryfall API)
+#   TRANSFORM: generate-presentation (transform card images into PPTX layout)
+#   LOAD:      convert-to-pdf      (load/output final PDF format)
+
+name: proxy-pipeline
+description: ETL workflow for generating Magic card proxies from decklist
+
+# Input variables (passed when invoking workflow)
+inputs:
+  decklist_path:
+    type: string
+    required: true
+    description: Path to decklist file (one card per line)
+    example: "decklists/frog_tribal.txt"
+
+  card_size:
+    type: string
+    required: false
+    default: "mtg"
+    description: Card size to use (mtg, pokemon, yugioh, mini, tarot, business)
+    example: "mtg"
+
+  template_path:
+    type: string
+    required: false
+    default: null
+    description: Path to PowerPoint template (auto-selected from card_size if not specified)
+    example: "template_2v6h_FIXED.pptx"
+
+  no_pdf:
+    type: boolean
+    required: false
+    default: false
+    description: Skip PDF conversion (PPTX only)
+
+# ETL Pipeline Steps
+steps:
+  # SELECT: Choose appropriate template based on card size
+  - name: select-template
+    skill: template/select-by-card-size
+    description: "Select PPTX template based on card size (or use explicit template)"
+    input:
+      card_size: ${input.card_size}
+      explicit_template: ${input.template_path}
+    output_var: template_info
+    on_error: halt  # Stop pipeline if template selection fails
+
+  # EXTRACT: Download card images from external API
+  - name: extract-cards
+    skill: fetch-cards
+    description: "Fetch card images from Scryfall API with rate limiting"
+    input:
+      decklist: ${input.decklist_path}
+      force: false  # Use cached images if available
+    output_var: manifest_path
+    on_error: halt  # Stop pipeline if extraction fails
+
+  # TRANSFORM: Convert card images into presentation layout
+  - name: transform-to-presentation
+    skill: generate-presentation
+    description: "Transform card images into PowerPoint layout using template"
+    input:
+      manifest: ${manifest_path}       # Data from previous step
+      template: ${template_info.data.template_path}  # From template selection
+      output_path: outputs/${basename(input.decklist_path)}.pptx
+    output_var: pptx_path
+    on_error: halt
+
+  # LOAD: Output final PDF format
+  - name: load-to-pdf
+    skill: convert-to-pdf
+    description: "Convert PPTX to print-ready PDF format"
+    input:
+      source: ${pptx_path}             # Data from previous step
+      output_dir: outputs
+    output_var: pdf_path
+    condition: ${input.no_pdf} == false  # Conditional execution
+    on_error: halt
+
+# Output: Final result returned by workflow
+output:
+  pptx: ${pptx_path}
+  pdf: ${pdf_path}
+  manifest: ${manifest_path}
+  template_used: ${template_info.data.template_path}
+  card_size_info: ${template_info.data}
+
+# Metadata
+metadata:
+  version: "1.0"
+  author: "A2A Orchestrator"
+  tags:
+    - etl
+    - magic-cards
+    - image-processing

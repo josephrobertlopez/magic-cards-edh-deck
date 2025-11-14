@@ -1,0 +1,73 @@
+name: "proxy_pipeline_composed"
+description: "ETL workflow using WORKFLOW COMPOSITION - Extract→Transform→Load sub-workflows"
+version: "2.0"
+
+# This demonstrates the NEW workflow composition feature!
+# Each step calls another WORKFLOW (not a skill)
+
+inputs:
+  decklist_path:
+    type: string
+    required: true
+    description: "Path to decklist file (one card per line)"
+    example: "decklists/frog_tribal.txt"
+
+  template_path:
+    type: string
+    required: false
+    default: "template_2v6h_FIXED.pptx"
+    description: "PowerPoint template file"
+
+  output_name:
+    type: string
+    required: false
+    default: "proxies"
+    description: "Base name for output files"
+
+  no_pdf:
+    type: boolean
+    required: false
+    default: false
+    description: "Skip PDF conversion (PPTX only)"
+
+steps:
+  # EXTRACT: Call proxy_extract.yaml workflow (NOT a skill!)
+  - name: extract
+    workflow: workflows/proxy_extract.yaml  # <-- WORKFLOW COMPOSITION!
+    args:
+      decklist_path: "{{inputs.decklist_path}}"
+      output_dir: ".claude/state"
+    outputs:
+      manifest: "{{result.manifest_file}}"
+
+  # TRANSFORM: Call proxy_transform.yaml workflow
+  - name: transform
+    workflow: workflows/proxy_transform.yaml  # <-- WORKFLOW COMPOSITION!
+    args:
+      manifest_path: "{{steps.extract.outputs.manifest}}"
+      template_path: "{{inputs.template_path}}"
+      output_path: "outputs/{{inputs.output_name}}.pptx"
+    outputs:
+      pptx: "{{result.presentation_file}}"
+
+  # LOAD: Call proxy_load.yaml workflow (conditional)
+  - name: load
+    workflow: workflows/proxy_load.yaml  # <-- WORKFLOW COMPOSITION!
+    args:
+      pptx_path: "{{steps.transform.outputs.pptx}}"
+      output_dir: "outputs"
+    outputs:
+      pdf: "{{result.pdf_file}}"
+
+outputs:
+  manifest: "{{steps.extract.outputs.manifest}}"
+  pptx_file: "{{steps.transform.outputs.pptx}}"
+  pdf_file: "{{steps.load.outputs.pdf}}"
+
+metadata:
+  version: "2.0"
+  composition_depth: 2  # Main workflow → 3 sub-workflows
+  demonstrates:
+    - "Workflow calling workflows (not just skills)"
+    - "ETL pattern with reusable workflow modules"
+    - "Call stack tracking across 3 workflow layers"
