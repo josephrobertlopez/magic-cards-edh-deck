@@ -1,6 +1,0 @@
-// Test deck with invalid cards
-Sol Ring
-FAKE_CARD_XYZ_123
-Command Tower
-INVALID_CARD_999
-Arcane Signet
