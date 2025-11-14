@@ -79,3 +79,8 @@ outputs/
 decklists/*.txt
 .claude/cards/
 .claude/downloads/
+
+# Downloaded card images (regenerable)
+images/
+.claude/cards/
+htmlcov/
