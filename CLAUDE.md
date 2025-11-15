@@ -16,6 +16,10 @@ Auto-generated from all feature plans. Last updated: 2025-11-07
 - File-based (YAML workflows, JSON manifests, skill outputs) (008-yaml-workflow-validation)
 - Python 3.9+ (existing codebase standard) + asyncio (stdlib), existing orchestrator modules (workflow_skill, exceptions) (009-fix-async-skill-execution)
 - N/A (bug fix, no data storage changes) (009-fix-async-skill-execution)
+- Python 3.9+ (existing codebase standard) + python-frontmatter==1.0.0 (new), PyYAML (existing), pathlib (stdlib), asyncio (stdlib) (011-anthropic-skills-format)
+- File-based (JSON manifests, YAML workflows, skill markdown files) (011-anthropic-skills-format)
+- Python 3.9+ (existing codebase standard) + python-frontmatter==1.0.0 (new), PyYAML (existing), asyncio (stdlib), pathlib (stdlib), existing a2a_orchestrator modules (011-anthropic-skills-format)
+- File-based (JSON manifests, YAML workflows, skill markdown files in .claude/skills/) (011-anthropic-skills-format)
 
 - Python 3.9+ + `python-pptx`, `Pillow`, `requests`, LibreOffice (system dependency) (002-consolidate-codebase)
 
@@ -35,9 +39,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.9+: Follow standard conventions
 
 ## Recent Changes
-- 009-fix-async-skill-execution: Added Python 3.9+ (existing codebase standard) + asyncio (stdlib), existing orchestrator modules (workflow_skill, exceptions)
-- 009-fix-async-skill-execution: Added Python 3.9+ (existing codebase standard) + asyncio (stdlib), existing orchestrator modules (workflow_skill, exceptions)
-- 008-yaml-workflow-validation: Added Python 3.9+ (existing codebase standard)
+- 011-anthropic-skills-format: Added Python 3.9+ (existing codebase standard) + python-frontmatter==1.0.0 (new), PyYAML (existing), asyncio (stdlib), pathlib (stdlib), existing a2a_orchestrator modules
+- 011-anthropic-skills-format: Added Python 3.9+ (existing codebase standard) + python-frontmatter==1.0.0 (new), PyYAML (existing), asyncio (stdlib), pathlib (stdlib), existing a2a_orchestrator modules
+- 011-anthropic-skills-format: Added Python 3.9+ (existing codebase standard) + python-frontmatter==1.0.0 (new), PyYAML (existing), pathlib (stdlib), asyncio (stdlib)
 
 
 <!-- MANUAL ADDITIONS START -->
