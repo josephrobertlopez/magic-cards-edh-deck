@@ -1,0 +1,130 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://magic-cards-edh-deck/schemas/skill-contract.schema.json",
+  "title": "SkillContract",
+  "description": "JSON Schema-based specification of skill input/output data structures for fail-fast validation",
+  "type": "object",
+  "properties": {
+    "skill_name": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Unique identifier in kebab-case (e.g., 'fetch-card-data'). Domain-agnostic naming encourages reusability."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version (e.g., '1.0.0') following semver format"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "description": "Human-readable purpose statement"
+    },
+    "single_responsibility": {
+      "type": "string",
+      "minLength": 10,
+      "description": "Explicit declaration of what skill does (and does NOT do)"
+    },
+    "executor_type": {
+      "type": "string",
+      "enum": ["async", "sync", "external_process"],
+      "default": "async",
+      "description": "Execution strategy. Async executor enables parallel batch processing."
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+      },
+      "default": [],
+      "description": "List of skill names this skill depends on. Orchestrator detects circular dependencies at load time."
+    },
+    "input_schema": {
+      "type": "object",
+      "description": "JSON Schema (draft-07 compatible) for skill input parameters",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["object", "array", "string", "number", "integer", "boolean", "null"]
+        },
+        "properties": {
+          "type": "object"
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": {
+          "type": "boolean"
+        }
+      },
+      "required": ["type"]
+    },
+    "output_schema": {
+      "type": "object",
+      "description": "JSON Schema (draft-07 compatible) for skill output data. Enables downstream skills to validate input compatibility.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["object", "array", "string", "number", "integer", "boolean", "null"]
+        },
+        "properties": {
+          "type": "object"
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": {
+          "type": "boolean"
+        }
+      },
+      "required": ["type"]
+    }
+  },
+  "required": ["skill_name", "version", "description", "single_responsibility", "input_schema", "output_schema"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "skill_name": "fetch-card-data",
+      "version": "1.0.0",
+      "description": "Fetches Magic: The Gathering card metadata from Scryfall API",
+      "single_responsibility": "Returns card JSON metadata. Does NOT fetch images or generate slides.",
+      "executor_type": "async",
+      "dependencies": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "card_name": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": ["card_name"],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "card_data": {
+            "type": "object",
+            "properties": {
+              "name": {"type": "string"},
+              "mana_cost": {"type": "string"},
+              "type_line": {"type": "string"},
+              "image_uris": {"type": "object"}
+            },
+            "required": ["name", "image_uris"]
+          }
+        },
+        "required": ["card_data"],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

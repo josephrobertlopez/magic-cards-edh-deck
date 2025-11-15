@@ -16,6 +16,8 @@ Auto-generated from all feature plans. Last updated: 2025-11-07
 - File-based (YAML workflows, JSON manifests, skill outputs) (008-yaml-workflow-validation)
 - Python 3.9+ (existing codebase standard) + asyncio (stdlib), existing orchestrator modules (workflow_skill, exceptions) (009-fix-async-skill-execution)
 - N/A (bug fix, no data storage changes) (009-fix-async-skill-execution)
+- Python 3.9+ (existing codebase standard) + asyncio (stdlib), aiohttp (async HTTP client for parallel requests), existing a2a_orchestrator modules (workflow_skill, message_cache, exceptions) (010-parallel-batch-processing)
+- File-based (JSON manifests for execution logs, YAML workflows, skill markdown files in .claude/skills/) (010-parallel-batch-processing)
 
 - Python 3.9+ + `python-pptx`, `Pillow`, `requests`, LibreOffice (system dependency) (002-consolidate-codebase)
 
@@ -35,9 +37,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.9+: Follow standard conventions
 
 ## Recent Changes
+- 010-parallel-batch-processing: Added Python 3.9+ (existing codebase standard) + asyncio (stdlib), aiohttp (async HTTP client for parallel requests), existing a2a_orchestrator modules (workflow_skill, message_cache, exceptions)
 - 009-fix-async-skill-execution: Added Python 3.9+ (existing codebase standard) + asyncio (stdlib), existing orchestrator modules (workflow_skill, exceptions)
 - 009-fix-async-skill-execution: Added Python 3.9+ (existing codebase standard) + asyncio (stdlib), existing orchestrator modules (workflow_skill, exceptions)
-- 008-yaml-workflow-validation: Added Python 3.9+ (existing codebase standard)
 
 
 <!-- MANUAL ADDITIONS START -->

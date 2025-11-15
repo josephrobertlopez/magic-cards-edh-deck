@@ -1,0 +1,200 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://magic-cards-edh-deck/schemas/workflow.schema.json",
+  "title": "Workflow",
+  "description": "Extended YAML workflow schema including batch processing configuration",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$",
+      "description": "Workflow identifier in snake_case (e.g., 'commander_to_proxies')"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "description": "Human-readable workflow purpose"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+(\\.\\d+)?$",
+      "description": "Workflow version (e.g., '1.0' or '1.0.0')"
+    },
+    "inputs": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-z_][a-z0-9_]*$": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["string", "integer", "number", "boolean", "array", "object"]
+            },
+            "required": {
+              "type": "boolean",
+              "default": false
+            },
+            "default": {
+              "description": "Default value if input not provided"
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": ["type", "required"],
+          "additionalProperties": false
+        }
+      },
+      "description": "Workflow input parameters with type declarations"
+    },
+    "batch_config": {
+      "$ref": "batch-config.schema.json",
+      "description": "Parallel batch processing configuration. When present, workflow executor enables batch mode."
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z_][a-z0-9_]*$",
+            "description": "Step identifier in snake_case"
+          },
+          "skill": {
+            "type": "string",
+            "description": "Skill path (e.g., 'data/fetch-card-data'). Mutually exclusive with 'workflow'."
+          },
+          "workflow": {
+            "type": "string",
+            "description": "Sub-workflow path (e.g., 'workflows/proxy_pipeline.yaml'). Mutually exclusive with 'skill'."
+          },
+          "args": {
+            "type": "object",
+            "description": "Arguments passed to skill/workflow. Supports template interpolation (e.g., '{{inputs.commander_name}}')."
+          },
+          "outputs": {
+            "type": "object",
+            "patternProperties": {
+              "^[a-z_][a-z0-9_]*$": {
+                "type": "string"
+              }
+            },
+            "description": "Output mappings capturing skill/workflow results"
+          },
+          "batch_mode": {
+            "type": "boolean",
+            "default": false,
+            "description": "If true, skill executes in parallel batches using workflow batch_config. Skill must support batching."
+          }
+        },
+        "required": ["name"],
+        "oneOf": [
+          {
+            "required": ["skill"]
+          },
+          {
+            "required": ["workflow"]
+          }
+        ],
+        "additionalProperties": false
+      },
+      "description": "Sequential workflow steps. Steps with batch_mode=true execute in parallel."
+    },
+    "outputs": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-z_][a-z0-9_]*$": {
+          "type": "string",
+          "description": "Template expression resolving step outputs (e.g., '{{steps.fetch_page.outputs.html_path}}')"
+        }
+      },
+      "description": "Final workflow outputs available to caller"
+    }
+  },
+  "required": ["name", "description", "version", "steps"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "name": "commander_to_proxies_parallel",
+      "description": "Generate Commander proxies with parallel batch processing (10x speedup)",
+      "version": "2.0",
+      "inputs": {
+        "commander_name": {
+          "type": "string",
+          "required": true,
+          "description": "Commander name (e.g., 'atraxa-praetors-voice')"
+        },
+        "max_cards": {
+          "type": "integer",
+          "required": false,
+          "default": 100,
+          "description": "Maximum cards to process"
+        }
+      },
+      "batch_config": {
+        "batch_size": 10,
+        "max_concurrent": 3,
+        "retry_strategy": "exponential_backoff",
+        "request_timeout_seconds": 30,
+        "retry_policy": {
+          "max_retries": 3,
+          "initial_delay_seconds": 1.0,
+          "max_delay_seconds": 8.0,
+          "jitter_enabled": true,
+          "retryable_errors": ["HTTP_429", "NETWORK_TIMEOUT"]
+        }
+      },
+      "steps": [
+        {
+          "name": "fetch_decklist",
+          "skill": "data/fetch-edhrec-decklist",
+          "args": {
+            "commander": "{{inputs.commander_name}}"
+          },
+          "outputs": {
+            "card_names": "{{result.card_names}}"
+          }
+        },
+        {
+          "name": "fetch_card_data",
+          "skill": "data/fetch-card-data",
+          "batch_mode": true,
+          "args": {
+            "card_names": "{{steps.fetch_decklist.outputs.card_names}}"
+          },
+          "outputs": {
+            "cards_data": "{{result.cards}}"
+          }
+        },
+        {
+          "name": "fetch_images",
+          "skill": "images/fetch-card-image",
+          "batch_mode": true,
+          "args": {
+            "cards_data": "{{steps.fetch_card_data.outputs.cards_data}}"
+          },
+          "outputs": {
+            "image_paths": "{{result.images}}"
+          }
+        },
+        {
+          "name": "generate_slides",
+          "skill": "slides/generate-proxy-slide",
+          "args": {
+            "image_paths": "{{steps.fetch_images.outputs.image_paths}}"
+          },
+          "outputs": {
+            "pptx_file": "{{result.pptx_path}}"
+          }
+        }
+      ],
+      "outputs": {
+        "commander": "{{inputs.commander_name}}",
+        "pptx": "{{steps.generate_slides.outputs.pptx_file}}",
+        "manifest": ".execution_manifests/commander_to_proxies_{{workflow_run_id}}.jsonl"
+      }
+    }
+  ]
+}
