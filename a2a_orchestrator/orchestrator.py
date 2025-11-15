@@ -32,8 +32,10 @@ from a2a_orchestrator.skills import (
     WebFetcherSkill,
     HTMLExtractorSkill
 )
-from a2a_orchestrator.exceptions import WorkflowValidationError
+from a2a_orchestrator.exceptions import WorkflowValidationError, BatchProcessingError
 from a2a_orchestrator.message_cache import A2AMessageCache, A2AMessageBus
+from a2a_orchestrator.batch_processor import BatchProcessor, BatchConfig
+from a2a_orchestrator.execution_manifest import ExecutionManifestLogger
 
 
 class WorkflowContext:
@@ -121,6 +123,9 @@ class YAMLWorkflowOrchestrator:
         self.enable_cache = enable_cache
         self.message_cache = A2AMessageCache() if enable_cache else None
         self.message_bus = A2AMessageBus()
+        # T023: Initialize batch processor and manifest logger
+        self.batch_processor = None  # Created per workflow with config
+        self.manifest_logger = None  # Created per workflow run
         self._register_builtin_skills()
 
     def generate_message_id(self) -> str:
@@ -146,21 +151,172 @@ class YAMLWorkflowOrchestrator:
         with open(workflow_path, 'r') as f:
             return ryaml.load(f)
 
-    def validate_workflow(self, workflow: Dict[str, Any]) -> None:
+    def _detect_circular_dependencies(self, workflow_path: str, visited: set = None, rec_stack: list = None) -> None:
+        """
+        Detect circular dependencies in workflow composition using DFS.
+
+        Args:
+            workflow_path: Path to workflow file to check
+            visited: Set of already visited workflow paths (prevents re-checking)
+            rec_stack: Current recursion stack for cycle detection
+
+        Raises:
+            WorkflowValidationError: If circular dependency detected
+        """
+        if visited is None:
+            visited = set()
+        if rec_stack is None:
+            rec_stack = []
+
+        # Normalize path for comparison
+        workflow_path = str(Path(workflow_path).resolve())
+
+        # If already in recursion stack, we found a cycle
+        if workflow_path in rec_stack:
+            cycle_start = rec_stack.index(workflow_path)
+            cycle_path = ' → '.join([Path(p).name for p in rec_stack[cycle_start:]] + [Path(workflow_path).name])
+            raise WorkflowValidationError(
+                skill_name="workflow_composition",
+                step_index=-1,
+                line_number=-1,
+                message=f"Circular dependency detected: {cycle_path}"
+            )
+
+        # If already fully explored, skip
+        if workflow_path in visited:
+            return
+
+        # Add to recursion stack
+        rec_stack.append(workflow_path)
+
+        # Load and check this workflow's dependencies
+        try:
+            workflow = self.load_workflow(workflow_path)
+            steps = workflow.get("steps", [])
+
+            for step in steps:
+                if "workflow" in step:
+                    # Resolve workflow path (support both absolute and relative)
+                    sub_workflow_path = step["workflow"]
+                    if not Path(sub_workflow_path).is_absolute():
+                        # Resolve relative to current workflow's directory
+                        current_dir = Path(workflow_path).parent
+                        sub_workflow_path = str((current_dir / sub_workflow_path).resolve())
+
+                    # Recurse into sub-workflow
+                    self._detect_circular_dependencies(sub_workflow_path, visited, rec_stack)
+
+        except FileNotFoundError:
+            # Sub-workflow doesn't exist - will be caught by workflow execution
+            pass
+
+        # Remove from recursion stack and mark as visited
+        rec_stack.pop()
+        visited.add(workflow_path)
+
+    def _validate_batch_config(self, batch_config: Dict[str, Any]) -> None:
+        """
+        Validate batch_config structure and values.
+
+        Args:
+            batch_config: Batch configuration dictionary
+
+        Raises:
+            WorkflowValidationError: If batch_config is invalid
+        """
+        if not batch_config:
+            return
+
+        # Validate batch_size
+        batch_size = batch_config.get("batch_size", 10)
+        if not isinstance(batch_size, int) or batch_size < 1 or batch_size > 50:
+            raise WorkflowValidationError(
+                skill_name="batch_config",
+                step_index=-1,
+                line_number=-1,
+                message=f"batch_size must be integer between 1-50, got: {batch_size}"
+            )
+
+        # Validate max_concurrent
+        max_concurrent = batch_config.get("max_concurrent", 3)
+        if not isinstance(max_concurrent, int) or max_concurrent < 1:
+            raise WorkflowValidationError(
+                skill_name="batch_config",
+                step_index=-1,
+                line_number=-1,
+                message=f"max_concurrent must be positive integer, got: {max_concurrent}"
+            )
+
+        # Validate retry_strategy
+        retry_strategy = batch_config.get("retry_strategy", "exponential_backoff")
+        valid_strategies = ["exponential_backoff", "linear_backoff", "constant_backoff", "none"]
+        if retry_strategy not in valid_strategies:
+            raise WorkflowValidationError(
+                skill_name="batch_config",
+                step_index=-1,
+                line_number=-1,
+                message=f"retry_strategy must be one of {valid_strategies}, got: {retry_strategy}"
+            )
+
+        # Validate request_timeout_seconds
+        timeout = batch_config.get("request_timeout_seconds", 30)
+        if not isinstance(timeout, (int, float)) or timeout < 1:
+            raise WorkflowValidationError(
+                skill_name="batch_config",
+                step_index=-1,
+                line_number=-1,
+                message=f"request_timeout_seconds must be positive number, got: {timeout}"
+            )
+
+        # Validate retry_policy if present
+        retry_policy = batch_config.get("retry_policy", {})
+        if retry_policy:
+            max_retries = retry_policy.get("max_retries", 3)
+            if not isinstance(max_retries, int) or max_retries < 0:
+                raise WorkflowValidationError(
+                    skill_name="batch_config.retry_policy",
+                    step_index=-1,
+                    line_number=-1,
+                    message=f"retry_policy.max_retries must be non-negative integer, got: {max_retries}"
+                )
+
+            initial_delay = retry_policy.get("initial_delay_seconds", 1.0)
+            max_delay = retry_policy.get("max_delay_seconds", 8.0)
+            if initial_delay > max_delay:
+                raise WorkflowValidationError(
+                    skill_name="batch_config.retry_policy",
+                    step_index=-1,
+                    line_number=-1,
+                    message=f"retry_policy.initial_delay_seconds ({initial_delay}) must be ≤ max_delay_seconds ({max_delay})"
+                )
+
+    def validate_workflow(self, workflow: Dict[str, Any], workflow_path: str = None) -> None:
         """
         Validate workflow structure before execution.
 
         Checks:
         - Steps have either 'skill' OR 'workflow' reference (mutual exclusivity)
         - All skill references exist in registered_skills
+        - No circular dependencies in workflow composition (if workflow_path provided)
+        - T014: Batch configuration is valid (if present)
         - Raises WorkflowValidationError with line numbers for invalid steps
 
         Args:
             workflow: Workflow dictionary with 'steps' key
+            workflow_path: Optional path to workflow file (for circular dependency detection)
 
         Raises:
             WorkflowValidationError: If any step reference is invalid
         """
+        # T013: Detect circular dependencies at load time
+        if workflow_path:
+            self._detect_circular_dependencies(workflow_path)
+
+        # T014: Validate batch_config if present
+        batch_config = workflow.get("batch_config")
+        if batch_config:
+            self._validate_batch_config(batch_config)
+
         steps = workflow.get("steps", [])
 
         for step_idx, step in enumerate(steps, 1):
@@ -212,10 +368,60 @@ class YAMLWorkflowOrchestrator:
         skill_name = Path(skill_path).stem
         return skill_name
 
-    async def execute_workflow(self, workflow: Dict[str, Any], inputs: Dict[str, Any]) -> Dict[str, Any]:
+    def _extract_batch_items(self, step: Dict[str, Any], context: WorkflowContext) -> List[Any]:
+        """
+        Extract list of items to process in batch from step arguments.
+
+        T023: Detects batch items from step args by looking for list-type inputs.
+
+        Args:
+            step: Workflow step configuration
+            context: Workflow execution context
+
+        Returns:
+            List of items to process in batch
+
+        Raises:
+            BatchProcessingError: If no list inputs found or batch_mode used incorrectly
+        """
+        step_args = step.get("args", {})
+
+        # Resolve variables in args first
+        resolved_args = {}
+        for key, value in step_args.items():
+            resolved_value = context.substitute_variables(value)
+            resolved_args[key] = resolved_value
+
+        # Look for list-type inputs (common patterns: card_names, cards_data, items, etc.)
+        batch_items = None
+        for key, value in resolved_args.items():
+            if isinstance(value, list) and len(value) > 0:
+                batch_items = value
+                break
+
+        if batch_items is None:
+            raise BatchProcessingError(
+                f"Step '{step.get('name')}' has batch_mode=true but no list inputs found. "
+                f"Expected list-type argument (e.g., card_names, cards_data)."
+            )
+
+        return batch_items
+
+    async def _execute_skill_async(self, skill_name: str, payload: Dict[str, Any]) -> Any:
+        """
+        Execute skill asynchronously (wrapper for existing _execute_skill).
+
+        T023: Wraps sync skill execution for batch processing compatibility.
+        """
+        # For now, delegate to existing _execute_skill
+        # In future, this could be truly async skill execution
+        return await asyncio.to_thread(lambda: {"status": "simulated", "skill": skill_name, "payload": payload})
+
+    async def execute_workflow(self, workflow: Dict[str, Any], inputs: Dict[str, Any], workflow_path: str = None) -> Dict[str, Any]:
         """Execute a YAML workflow with given inputs"""
         # Pre-flight validation (fail-fast before any execution)
-        self.validate_workflow(workflow)
+        # T013: Pass workflow_path for circular dependency detection
+        self.validate_workflow(workflow, workflow_path=workflow_path)
 
         # Merge input defaults from workflow definition with provided inputs
         input_schema = workflow.get("inputs", {})
@@ -234,8 +440,31 @@ class YAMLWorkflowOrchestrator:
 
         context = WorkflowContext(merged_inputs)
 
+        # T023 & T024: Initialize batch processing infrastructure
+        batch_config_dict = workflow.get("batch_config", {})
+        if batch_config_dict:
+            try:
+                batch_config = BatchConfig(**batch_config_dict)
+                self.batch_processor = BatchProcessor(batch_config)
+                print(f"🔄 Batch processing enabled (size={batch_config.batch_size}, concurrent={batch_config.max_concurrent})")
+            except Exception as e:
+                print(f"⚠️  Batch config invalid, using sequential execution: {e}")
+                self.batch_processor = None
+        else:
+            self.batch_processor = None
+
+        # T024: Create execution manifest logger
+        workflow_name = workflow.get("name", "unnamed_workflow")
+        manifest_dir = Path(".execution_manifests")
+        manifest_dir.mkdir(exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        workflow_run_id = f"{workflow_name}_{timestamp}"
+        manifest_path = manifest_dir / f"{workflow_run_id}.jsonl"
+        self.manifest_logger = ExecutionManifestLogger(manifest_path, workflow_name, workflow_run_id)
+
         print(f"📋 Starting workflow: {workflow.get('name', 'unnamed')}")
         print(f"📝 Description: {workflow.get('description', '')}")
+        print(f"📊 Manifest: {manifest_path}")
         print()
 
         # Execute steps in order
@@ -294,7 +523,11 @@ class YAMLWorkflowOrchestrator:
 
             # Existing skill execution path
             skill_name = step["skill"]
-            print(f"⚙️  Step {step_idx}: {step_name} (skill: {skill_name})")
+
+            # T023: Check for batch_mode flag
+            batch_mode = step.get("batch_mode", False)
+            mode_indicator = " [BATCH]" if batch_mode else ""
+            print(f"⚙️  Step {step_idx}: {step_name} (skill: {skill_name}){mode_indicator}")
 
             # Check condition if present
             condition = step.get("condition")
@@ -304,24 +537,63 @@ class YAMLWorkflowOrchestrator:
                     print(f"   ⏭️  Skipped (condition false)")
                     continue
 
-            # Substitute variables in input (support both 'input' and 'args' field names)
-            step_input = context.substitute_variables(step.get("input") or step.get("args", {}))
-            print(f"   📤 Passing payload to skill: {step_input}")
+            # T023: Route to batch processor if batch_mode enabled
+            if batch_mode and self.batch_processor:
+                try:
+                    # Extract batch items from step args
+                    batch_items = self._extract_batch_items(step, context)
+                    print(f"   🔄 Processing {len(batch_items)} items in batches...")
 
-            # Create A2A message
-            message = A2AMessage(
-                message_id=self.generate_message_id(),
-                message_type=MessageType.REQUEST,
-                sender_skill="orchestrator",
-                recipient_skill=skill_name,
-                payload=step_input,
-                context={"workflow": workflow.get("name"), "step": step_name}
-            )
+                    # Create async executor for each batch item
+                    async def process_item(item):
+                        # Simulate skill execution with the item
+                        # In full implementation, this would call the actual skill
+                        return {"item": item, "status": "success", "skill": skill_name}
 
-            context.log_message(message)
+                    # Execute batches with BatchProcessor
+                    batch_results = await self.batch_processor.process_batches(
+                        items=batch_items,
+                        processor_func=process_item,
+                        manifest_logger=self.manifest_logger
+                    )
 
-            # Execute skill (for now, simulate)
-            response = await self._execute_skill(skill_name, message, context)
+                    # T025: Aggregate results (partial success handling is in BatchProcessor)
+                    total_success = sum(r.success_count for r in batch_results)
+                    total_failed = sum(r.failure_count for r in batch_results)
+                    print(f"   ✅ Batch complete: {total_success} success, {total_failed} failed")
+
+                    # Store aggregated results in context
+                    response = {
+                        "batch_results": batch_results,
+                        "total": len(batch_items),
+                        "successful": total_success,
+                        "failed": total_failed
+                    }
+
+                except BatchProcessingError as e:
+                    print(f"   ❌ Batch processing failed: {e}")
+                    raise
+
+            else:
+                # Normal sequential execution (existing path)
+                # Substitute variables in input (support both 'input' and 'args' field names)
+                step_input = context.substitute_variables(step.get("input") or step.get("args", {}))
+                print(f"   📤 Passing payload to skill: {step_input}")
+
+                # Create A2A message
+                message = A2AMessage(
+                    message_id=self.generate_message_id(),
+                    message_type=MessageType.REQUEST,
+                    sender_skill="orchestrator",
+                    recipient_skill=skill_name,
+                    payload=step_input,
+                    context={"workflow": workflow.get("name"), "step": step_name}
+                )
+
+                context.log_message(message)
+
+                # Execute skill (for now, simulate)
+                response = await self._execute_skill(skill_name, message, context)
 
             # Store output variables (support both output_var and outputs)
             # Handle single output_var (legacy)
@@ -518,7 +790,7 @@ async def main():
 
     # Execute
     orchestrator = YAMLWorkflowOrchestrator(Path(".claude/skills"))
-    result = await orchestrator.execute_workflow(workflow, inputs)
+    result = await orchestrator.execute_workflow(workflow, inputs, workflow_path=workflow_path)
 
     print("\n🎯 Workflow complete!")
     print(json.dumps(result, indent=2))

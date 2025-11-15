@@ -79,6 +79,7 @@ outputs/
 decklists/*.txt
 .claude/cards/
 .claude/downloads/
+.execution_manifests/
 
 # Downloaded card images (regenerable)
 images/

@@ -82,13 +82,18 @@ def test_validate_workflow_empty_steps(orchestrator):
 
 
 def test_validate_workflow_missing_skill_key(orchestrator):
-    """Test workflow validation handles steps without 'skill' key"""
+    """Test workflow validation rejects steps without 'skill' or 'workflow' key"""
+    from a2a_orchestrator.exceptions import WorkflowValidationError
+
     workflow = {
         "name": "test",
         "description": "Step missing skill key",
         "steps": [{"name": "broken-step", "input": {}}]
     }
-    orchestrator.validate_workflow(workflow)  # Should not raise
+
+    # After Feature 010 validation improvements, this should raise
+    with pytest.raises(WorkflowValidationError, match="must have either 'skill' or 'workflow'"):
+        orchestrator.validate_workflow(workflow)
 
 
 def test_load_workflow_with_line_numbers():

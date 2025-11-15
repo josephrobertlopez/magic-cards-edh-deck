@@ -59,27 +59,28 @@ As a workflow developer, I want to compose new workflows from single-responsibil
 
 - What happens when **all cards in a batch fail** (Scryfall API completely down)? → System retries batch once after 5s delay, then fails entire workflow with clear error: "Scryfall unreachable for batch 3/10, aborting workflow"
 - What happens when **user interrupts workflow mid-execution** (Ctrl+C during batch 5/10)? → Orchestrator logs completed batches to manifest, gracefully shuts down, and provides resumption instructions (future enhancement: auto-resume from manifest)
-- What happens when **batch_size=0 or batch_size=-5**? → Workflow validation catches invalid config at load time, fails with error: "batch_size must be positive integer, got: 0"
+- What happens when **batch_size=0 or batch_size=-5**? → Workflow validation catches invalid config at load time, fails with error: "batch_size must be 1-50, got: 0"
 - What happens when **max_concurrent exceeds total batches** (max_concurrent=10 but only 3 batches)? → System runs all 3 batches in parallel without errors, effectively acting as concurrent=3
 - What happens when **skills have circular dependencies** (skill A calls B, B calls A)? → Orchestrator detects cycle during workflow graph analysis, fails at load time with error: "Circular dependency detected: A → B → A"
 - What happens when **partial batch success** (batch 1: 10/10 success, batch 2: 3/10 success, batch 3: 10/10 success)? → System aggregates results, continues processing if ≥50% batches succeed, generates partial output with warnings for failed items
 - How does system handle **network timeouts mid-batch** (3 of 10 requests hang)? → Apply request timeout (default 30s per card), log timeouts as failures, continue processing remaining 7 cards in batch
+- What happens when **permanent API errors occur** (404 card not found for "Blakc Lotus" typo)? → Log permanent error (no retry), continue processing remaining cards in batch, fail workflow only if >50% of batch items have permanent errors (e.g., 6+ of 10 cards not found)
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: Orchestrator MUST execute workflow steps in parallel batches when configured with batch_size (cards per batch) and max_concurrent (simultaneous batches) parameters
-- **FR-002**: Batch processing MUST apply exponential backoff retry logic when API returns rate limit errors (429), starting at 1 second and doubling on each retry (1s → 2s → 4s), max 3 retries per request
+- **FR-001**: Orchestrator MUST execute workflow steps in parallel batches when configured with batch_size (cards per batch, valid range: 1-50) and max_concurrent (simultaneous batches) parameters
+- **FR-002**: Batch processing MUST apply exponential backoff retry logic per-item (each card retries independently) when API returns rate limit errors (429), starting at 1 second and doubling on each retry (1s → 2s → 4s), max 3 retries per request
 - **FR-003**: System MUST support configurable retry strategies (exponential backoff, linear backoff, none) definable in workflow configuration
 - **FR-004**: Skills MUST be decomposed into atomic, single-responsibility units following A2A protocol (fetch-card-data, fetch-card-image, generate-slide as separate skills)
-- **FR-005**: Skills MUST define input/output contracts validated by orchestrator before workflow execution starts (fail fast on type mismatches or missing parameters)
-- **FR-006**: Orchestrator MUST log all batch executions to structured manifest (batch number, card names, success/failure status, timestamps, errors) for debugging and resumption
+- **FR-005**: Skills MUST define input/output contracts validated by orchestrator before workflow execution starts; workflow loading MUST fail immediately on type mismatches or missing required parameters (fail-fast validation)
+- **FR-006**: Orchestrator MUST log all batch executions to structured JSONL manifest (batch number, card names, success/failure status, timestamps, errors array nested within batch_complete events) for debugging and resumption
 - **FR-007**: System MUST generate partial outputs when ≥50% of batch operations succeed, logging clear warnings for failed items rather than failing entire workflow
 - **FR-008**: Workflow validation MUST detect circular skill dependencies at load time and fail with actionable error messages before execution starts
 - **FR-009**: Batch processing MUST preserve existing message caching performance (no cache invalidation side effects that degrade 25x speedup)
 - **FR-010**: System MUST apply per-request timeouts (configurable, default 30 seconds) to prevent hung connections from blocking batch processing indefinitely
-- **FR-011**: Retry logic MUST only retry transient errors (rate limits, network timeouts), NOT permanent failures (404 card not found, 401 authentication error)
+- **FR-011**: Retry logic MUST only retry transient errors (rate limits, network timeouts), NOT permanent failures (404 card not found, 401 authentication error); permanent errors MUST be logged and processing continues with remaining batch items, failing workflow only when >50% of batch items encounter permanent errors
 - **FR-012**: Skills MUST be reusable across workflows without modifications (domain-agnostic where possible, e.g., fetch-json-from-url not fetch-edhrec-data)
 
 ### Key Entities
@@ -87,7 +88,7 @@ As a workflow developer, I want to compose new workflows from single-responsibil
 - **BatchConfig**: Workflow configuration controlling parallel execution (batch_size: integer, max_concurrent: integer, retry_strategy: ExponentialBackoff|LinearBackoff|None, request_timeout_seconds: integer)
 - **Skill**: Atomic automation unit with defined input/output contract, executable via A2A protocol, single responsibility (e.g., fetch-card-image does NOT also resize or generate slides)
 - **ExecutionManifest**: Structured log capturing batch execution state (batch_number, items_processed, success_count, failure_count, errors: [{item, error_type, message}], timestamps)
-- **RetryPolicy**: Configuration for handling transient failures (max_retries: integer, initial_delay_seconds: float, backoff_strategy: ExponentialBackoff|LinearBackoff, retryable_errors: [HTTP_429, NETWORK_TIMEOUT])
+- **RetryPolicy**: Configuration for handling transient failures (max_retries: integer, initial_delay_seconds: float, backoff_strategy: ExponentialBackoff|LinearBackoff, retryable_errors: [HTTP_429, NETWORK_TIMEOUT], permanent_errors: [HTTP_404, HTTP_401] that skip retry and log immediately)
 - **CardData**: Domain entity representing card metadata (name, mana_cost, type_line, oracle_text, image_uris, prices) returned by fetch-card-data skill
 - **DeckList**: Collection of card names with commander metadata, input to batch processing workflows
 
@@ -99,6 +100,17 @@ As a workflow developer, I want to compose new workflows from single-responsibil
 - **Concurrency**: Default max_concurrent=3 respects API fair use policies while providing meaningful parallelism (3x speedup minimum even before batching)
 - **Request Timeout**: 30 seconds per card fetch is sufficient for 99% of requests under normal conditions (average response time ~2s, timeout catches outliers)
 - **Partial Success**: Users prefer partial outputs (95 cards with 5 failures) over all-or-nothing failure, especially for long-running workflows
+
+## Clarifications
+
+### Session 2025-11-15
+
+- Q: What are the valid ranges for `batch_size` configuration parameter? → A: 1-50 (recommended max for Scryfall API fair use)
+- Q: What happens when skill contract is invalid (type mismatch, missing parameter)? → A: Fail immediately (refuse to load workflow)
+- Q: How are errors structured in the JSONL execution manifest? → A: Nested (errors as array within batch_complete event)
+- Q: Is retry logic applied per-item, per-batch, or both? → A: Per-item only (each card retries independently)
+- Q: When are circular skill dependencies validated? → A: At workflow load time (when YAML parsed)
+- Q: What should happen when the Scryfall API returns a permanent error (e.g., 404 card not found) during batch processing - should it fail the entire batch or just log the failure and continue? → A: Log failure + continue processing batch, fail workflow only if >50% batch fails (graceful degradation)
 
 ## Success Criteria *(mandatory)*
 

@@ -75,3 +75,92 @@ class WorkflowExecutionError(Exception):
 
     def __str__(self):
         return self.message
+
+
+class BatchProcessingError(Exception):
+    """
+    Raised when batch processing fails below partial success threshold.
+
+    Batch processing continues if ≥50% of batches succeed (partial success).
+    This exception is raised when <50% of batches succeed, indicating
+    systemic failure (e.g., API completely unreachable).
+
+    Attributes:
+        message: Human-readable error message with failure statistics
+    """
+
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(self.message)
+
+    def __str__(self):
+        return self.message
+
+
+class ContractValidationError(Exception):
+    """
+    Raised when skill contract validation fails at workflow load time.
+
+    Contract validation is fail-fast: workflows are validated before execution
+    starts to catch type mismatches, missing required parameters, and schema
+    violations before making expensive API calls.
+
+    Attributes:
+        message: Detailed error message with JSON Pointer path to failed field
+
+    Example:
+        ContractValidationError: Skill input validation failed for 'fetch-card-data':
+          'batch_size' must be integer, got string
+          Path: /batch_size
+          Expected: {type: integer, minimum: 1}
+    """
+
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(self.message)
+
+    def __str__(self):
+        return self.message
+
+
+class RateLimitError(Exception):
+    """
+    Raised when API rate limit is exceeded (HTTP 429).
+
+    This is a transient error eligible for retry with exponential backoff.
+    Retry logic should handle this exception and apply increasing delays
+    (1s → 2s → 4s → 8s) before retrying.
+
+    Attributes:
+        message: Error message (e.g., "API rate limit exceeded")
+        retry_after: Optional retry-after header value in seconds
+    """
+
+    def __init__(self, message: str, retry_after: int = None):
+        self.message = message
+        self.retry_after = retry_after
+        super().__init__(self.message)
+
+    def __str__(self):
+        if self.retry_after:
+            return f"{self.message} (retry after {self.retry_after}s)"
+        return self.message
+
+
+class TimeoutError(Exception):
+    """
+    Raised when request exceeds timeout threshold.
+
+    This is a transient error eligible for retry. Per-request timeouts
+    (default 30s) prevent hung connections from blocking batch processing.
+
+    Attributes:
+        message: Error message (e.g., "Request timeout after 30s")
+    """
+
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(self.message)
+
+    def __str__(self):
+        return self.message
