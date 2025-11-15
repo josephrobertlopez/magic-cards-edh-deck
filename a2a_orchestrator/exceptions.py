@@ -75,3 +75,53 @@ class WorkflowExecutionError(Exception):
 
     def __str__(self):
         return self.message
+
+
+class SkillNotFoundError(Exception):
+    """
+    Raised when skill cannot be found in any supported format.
+
+    Attributes:
+        skill_name: Name of the skill that was not found
+        checked_paths: List of paths that were checked
+        message: Human-readable error message with all checked locations
+    """
+
+    def __init__(self, skill_name: str, checked_paths: list):
+        self.skill_name = skill_name
+        self.checked_paths = checked_paths
+
+        paths_str = "\n  - ".join(str(p) for p in checked_paths)
+        self.message = (
+            f"Skill '{skill_name}' not found. Checked paths:\n  - {paths_str}"
+        )
+        super().__init__(self.message)
+
+    def __str__(self):
+        return self.message
+
+
+class SkillLoadError(Exception):
+    """
+    Raised when skill file exists but cannot be loaded (invalid YAML, missing fields, etc.).
+
+    Attributes:
+        skill_name: Name of the skill that failed to load
+        skill_path: Path to the skill file
+        reason: Description of why loading failed
+        message: Human-readable error message
+    """
+
+    def __init__(self, skill_name: str, skill_path: str, reason: str):
+        self.skill_name = skill_name
+        self.skill_path = skill_path
+        self.reason = reason
+
+        self.message = (
+            f"Failed to load skill '{skill_name}' from {skill_path}\n"
+            f"Reason: {reason}"
+        )
+        super().__init__(self.message)
+
+    def __str__(self):
+        return self.message

@@ -1,0 +1,11 @@
+name: test-anthropic-skill
+description: Test workflow for Anthropic skills format validation
+
+steps:
+  - skill: example-anthropic
+    inputs:
+      message: "Testing Anthropic format skill"
+    output_var: result
+
+outputs:
+  result: ${result}

@@ -1,0 +1,20 @@
+name: test-skill-with-script
+description: Test workflow for Anthropic skill with scripts/ subdirectory execution
+
+inputs:
+  test_message:
+    type: string
+    default: "Hello from test workflow"
+
+steps:
+  - name: execute-script-skill
+    skill: example-with-script
+    input:
+      input_text: "{{inputs.test_message}}"
+      output_file: "/tmp/skill_script_output.txt"
+      timestamp: "{{context.timestamp}}"
+    outputs:
+      result: "{{result}}"
+
+outputs:
+  final_result: "{{steps.execute-script-skill.outputs.result}}"

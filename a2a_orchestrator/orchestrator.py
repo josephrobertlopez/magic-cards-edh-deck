@@ -12,8 +12,9 @@ from ruamel.yaml import YAML
 import json
 import asyncio
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
+from enum import Enum
 
 # Add repo root to path
 repo_root = Path(__file__).parent.parent
@@ -32,8 +33,20 @@ from a2a_orchestrator.skills import (
     WebFetcherSkill,
     HTMLExtractorSkill
 )
-from a2a_orchestrator.exceptions import WorkflowValidationError
+from a2a_orchestrator.exceptions import (
+    WorkflowValidationError,
+    SkillNotFoundError,
+    SkillLoadError
+)
 from a2a_orchestrator.message_cache import A2AMessageCache, A2AMessageBus
+
+
+class FormatType(Enum):
+    """Skill format classification for resolution and execution."""
+    ANTHROPIC = "anthropic"  # Directory with SKILL.md + YAML frontmatter
+    MARKDOWN = "markdown"    # Legacy flat markdown file
+    PYTHON = "python"        # Legacy Python executor script
+    UNKNOWN = "unknown"      # No matching format found
 
 
 class WorkflowContext:
@@ -369,23 +382,145 @@ class YAMLWorkflowOrchestrator:
                 })
                 return cached_result
 
-        # Look up skill in registry
-        skill = self.registered_skills.get(skill_name)
+        # T011: Detect skill format and branch execution logic
+        skill_path, format_type = self._resolve_skill_with_format(skill_name)
 
-        if not skill:
+        # T009: Handle skill not found with checked paths
+        if format_type == FormatType.UNKNOWN:
+            checked_paths = [
+                self.skills_dir / skill_name / "SKILL.md",
+                self.skills_dir / f"{skill_name}.md",
+                self.skills_dir / f"{skill_name}.py"
+            ]
             print(f"   ❌ Skill not found: {skill_name}")
             error_msg = A2AMessage(
                 message_id=self.generate_message_id(),
                 message_type=MessageType.ERROR,
                 sender_skill="orchestrator",
                 recipient_skill="orchestrator",
-                payload={"error": f"Skill not found: {skill_name}"},
+                payload={"error": f"Skill not found: {skill_name}", "checked_paths": [str(p) for p in checked_paths]},
                 context={"workflow_message_id": message.message_id}
             )
             context.log_message(error_msg)
             return None
 
-        print(f"   🔄 Executing {skill_name}...")
+        # T012: Log skill format detection
+        format_icons = {
+            FormatType.ANTHROPIC: "📁",
+            FormatType.MARKDOWN: "📄",
+            FormatType.PYTHON: "🐍"
+        }
+        icon = format_icons.get(format_type, "❓")
+        print(f"   {icon} Loaded '{skill_name}' ({format_type.value} format)")
+
+        # T011: Branch execution based on format
+        if format_type == FormatType.ANTHROPIC:
+            # Load Anthropic skill with frontmatter
+            try:
+                skill_data = self._load_anthropic_skill(skill_path)
+                print(f"   🔄 Executing Anthropic skill: {skill_data['name']}...")
+
+                # T044: Check for scripts/ subdirectory and execute if present
+                skill_dir = skill_path.parent
+                scripts_dir = skill_dir / "scripts"
+
+                if scripts_dir.exists() and scripts_dir.is_dir():
+                    # Find Python scripts in scripts/ directory
+                    python_scripts = list(scripts_dir.glob("*.py"))
+                    if python_scripts:
+                        # Execute the first Python script found (typically process.py)
+                        script_path = python_scripts[0]
+                        print(f"   🐍 Executing script: {script_path.name}")
+
+                        # T046: Pass workflow variables as environment variables
+                        import subprocess
+                        env = os.environ.copy()
+
+                        # Add workflow variables to environment
+                        if isinstance(message.payload, dict):
+                            for key, value in message.payload.items():
+                                env[str(key)] = str(value)
+
+                        # Execute script
+                        try:
+                            result = subprocess.run(
+                                ["python3", str(script_path)],
+                                env=env,
+                                capture_output=True,
+                                text=True,
+                                timeout=60
+                            )
+
+                            if result.returncode == 0:
+                                print(f"   ✅ Script executed successfully")
+                                # Try to parse JSON output
+                                import json
+                                try:
+                                    output = json.loads(result.stdout)
+                                    return output
+                                except json.JSONDecodeError:
+                                    return {"status": "success", "output": result.stdout}
+                            else:
+                                print(f"   ❌ Script failed with code {result.returncode}")
+                                print(f"   Error: {result.stderr}")
+                                return {"status": "error", "error": result.stderr}
+                        except subprocess.TimeoutExpired:
+                            print(f"   ❌ Script timeout (60s)")
+                            return {"status": "error", "error": "Script execution timeout"}
+                else:
+                    # No scripts - Anthropic skill provides instructions/prompts only
+                    print(f"   📄 Anthropic skill (prompt-based, no scripts)")
+                    return {"status": "success", "skill_data": skill_data}
+
+            except Exception as e:
+                # T010: Handle SkillLoadError
+                print(f"   ❌ Failed to load skill: {e}")
+                error_msg = A2AMessage(
+                    message_id=self.generate_message_id(),
+                    message_type=MessageType.ERROR,
+                    sender_skill="orchestrator",
+                    recipient_skill="orchestrator",
+                    payload={"error": str(e)},
+                    context={"workflow_message_id": message.message_id}
+                )
+                context.log_message(error_msg)
+                return None
+
+        elif format_type == FormatType.MARKDOWN:
+            # Legacy markdown format - try registered skills first for backward compat
+            skill = self.registered_skills.get(skill_name)
+            if skill:
+                print(f"   🔄 Executing registered skill: {skill_name}...")
+            else:
+                # Markdown skill without registered executor (prompt-based)
+                print(f"   🔄 Executing markdown skill: {skill_name}...")
+                with open(skill_path, 'r') as f:
+                    content = f.read()
+                return {"status": "success", "content": content}
+
+        elif format_type == FormatType.PYTHON:
+            # Legacy Python executor - must be in registered skills
+            skill = self.registered_skills.get(skill_name)
+            if not skill:
+                print(f"   ❌ Python skill not registered: {skill_name}")
+                error_msg = A2AMessage(
+                    message_id=self.generate_message_id(),
+                    message_type=MessageType.ERROR,
+                    sender_skill="orchestrator",
+                    recipient_skill="orchestrator",
+                    payload={"error": f"Python skill '{skill_name}' not registered in orchestrator"},
+                    context={"workflow_message_id": message.message_id}
+                )
+                context.log_message(error_msg)
+                return None
+            print(f"   🔄 Executing Python skill: {skill_name}...")
+
+        # Continue with existing registered skill execution if we have a skill object
+        if format_type in (FormatType.MARKDOWN, FormatType.PYTHON):
+            skill = self.registered_skills.get(skill_name)
+            if not skill:
+                # Already returned above for Python, this handles markdown without executor
+                return None
 
         # Publish skill execution event
         await self.message_bus.publish("skill.executing", {
@@ -444,12 +579,96 @@ class YAMLWorkflowOrchestrator:
 
         return result
 
-    def _resolve_skill_path(self, skill_name: str) -> Optional[Path]:
-        """Resolve skill name to markdown file path"""
-        # Handle slash notation: data/fetch-from-api → data/fetch-from-api.md
-        skill_md = self.skills_dir / f"{skill_name}.md"
-        return skill_md if skill_md.exists() else None
+    def _resolve_skill_with_format(self, skill_name: str) -> Tuple[Optional[Path], FormatType]:
+        """
+        Resolve skill name to (path, format_type) with cascading priority.
 
+        Resolution order:
+        1. Anthropic format: .claude/skills/{name}/SKILL.md
+        2. Legacy markdown: .claude/skills/{name}.md
+        3. Legacy Python: .claude/skills/{name}.py
+
+        Returns:
+            Tuple of (skill_path, format_type) or (None, FormatType.UNKNOWN)
+        """
+        # Priority 1: Anthropic directory format
+        anthropic_path = self.skills_dir / skill_name / "SKILL.md"
+        if anthropic_path.exists():
+            return (anthropic_path, FormatType.ANTHROPIC)
+
+        # Priority 2: Legacy markdown format
+        markdown_path = self.skills_dir / f"{skill_name}.md"
+        if markdown_path.exists():
+            return (markdown_path, FormatType.MARKDOWN)
+
+        # Priority 3: Legacy Python executor
+        python_path = self.skills_dir / f"{skill_name}.py"
+        if python_path.exists():
+            return (python_path, FormatType.PYTHON)
+
+        # Not found
+        return (None, FormatType.UNKNOWN)
+
+    def _resolve_skill_path(self, skill_name: str) -> Optional[Path]:
+        """
+        Resolve skill name to file path (backward compatible wrapper).
+
+        This method maintains backward compatibility with existing code
+        that only needs the path, not the format type.
+        """
+        path, _ = self._resolve_skill_with_format(skill_name)
+        return path
+
+    def _load_anthropic_skill(self, skill_path: Path) -> Dict[str, Any]:
+        """
+        Load Anthropic format skill from SKILL.md with YAML frontmatter.
+
+        Args:
+            skill_path: Path to SKILL.md file
+
+        Returns:
+            Dictionary with:
+                - name: Skill name from frontmatter
+                - description: Skill description from frontmatter
+                - content: Markdown body (instructions)
+                - metadata: Full frontmatter dict
+
+        Raises:
+            SkillLoadError: If YAML frontmatter is invalid or missing required fields
+        """
+        try:
+            import frontmatter
+        except ImportError:
+            raise ImportError(
+                "python-frontmatter library required for Anthropic skills format. "
+                "Install with: pip install python-frontmatter==1.0.0"
+            )
+
+        try:
+            with open(skill_path, 'r', encoding='utf-8-sig') as f:
+                post = frontmatter.load(f)
+
+            # Validate required fields
+            if 'name' not in post.metadata:
+                raise ValueError(
+                    f"SKILL.md missing 'name' in frontmatter: {skill_path}"
+                )
+            if 'description' not in post.metadata:
+                raise ValueError(
+                    f"SKILL.md missing 'description' in frontmatter: {skill_path}"
+                )
+
+            return {
+                'name': post.metadata['name'],
+                'description': post.metadata['description'],
+                'content': post.content,
+                'metadata': post.metadata
+            }
+
+        except yaml.YAMLError as e:
+            raise ValueError(
+                f"Invalid YAML frontmatter in {skill_path}: {e}"
+            )
 
     def _evaluate_condition(self, condition: str, context: WorkflowContext) -> bool:
         """Evaluate a condition string like '${input.no_pdf} == false'"""
