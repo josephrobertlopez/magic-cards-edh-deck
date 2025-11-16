@@ -21,6 +21,8 @@ Auto-generated from all feature plans. Last updated: 2025-11-07
 - Python 3.9+ (existing codebase standard) + requests (HTTP), beautifulsoup4 (HTML parsing), jsonpath-ng (JSON extraction), python-pptx (presentation generation), existing a2a_orchestrator (batch processing) (009-domain-agnostic-skills)
 - File-based (skill markdown files in `.claude/skills/`, workflow YAML files, execution manifests) (009-domain-agnostic-skills)
 - File-based (YAML workflows, JSON manifests, skill markdown files in `.claude/skills/`) (009-domain-agnostic-skills)
+- Python 3.9+ (existing codebase standard) + pandas (Excel parsing), openpyxl (xlsx backend), Pillow (image composition), requests (HTTP), beautifulsoup4 (template research), python-pptx (grid layout), existing domain-agnostic skills (http/, html/, document/) (012-hellcube-proxy-generator)
+- File-based (Hellcube AJ.xlsx input, JSON card data cache, downloaded templates, generated proxy PNGs) (012-hellcube-proxy-generator)
 
 - Python 3.9+ + `python-pptx`, `Pillow`, `requests`, LibreOffice (system dependency) (002-consolidate-codebase)
 
@@ -40,7 +42,7 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.9+: Follow standard conventions
 
 ## Recent Changes
-- 009-domain-agnostic-skills: Added Python 3.9+ (existing codebase standard) + requests (HTTP), beautifulsoup4 (HTML parsing), jsonpath-ng (JSON extraction), python-pptx (presentation generation), existing a2a_orchestrator (batch processing)
+- 012-hellcube-proxy-generator: Added Python 3.9+ (existing codebase standard) + pandas (Excel parsing), openpyxl (xlsx backend), Pillow (image composition), requests (HTTP), beautifulsoup4 (template research), python-pptx (grid layout), existing domain-agnostic skills (http/, html/, document/)
 - 009-domain-agnostic-skills: Added Python 3.9+ (existing codebase standard) + requests (HTTP), beautifulsoup4 (HTML parsing), jsonpath-ng (JSON extraction), python-pptx (presentation generation), existing a2a_orchestrator (batch processing)
 - 009-domain-agnostic-skills: Added Python 3.9+ (existing codebase standard) + requests (HTTP), beautifulsoup4 (HTML parsing), jsonpath-ng (JSON extraction), python-pptx (presentation generation), existing a2a_orchestrator (batch processing)
 
