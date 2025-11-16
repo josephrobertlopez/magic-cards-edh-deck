@@ -1,0 +1,218 @@
+# Feature Specification: Hellcube Proxy Generator
+
+**Feature Branch**: `008-hellcube-proxy-generator`
+**Created**: 2025-11-15
+**Status**: Draft
+**Input**: User description: "Use our domain-agnostic skills to research and download various MTG card templates for proxying purposes. Convert the unstructured Hellcube spreadsheet data into structured card information using semantic reasoning to recognize cell patterns and group for labeling, then generate proxy cards."
+
+## Clarifications
+
+### Session 2025-11-15
+
+- Q: How should the parser infer card attributes not explicitly labeled (color, legendary status, primary type)? → A: Full inference using heuristics (color from mana cost symbols, legendary status from "Legendary" keyword in Types field, primary card type from first word after dash in Types field, supertypes/subtypes from Types parsing)
+
+- Q: Which template frame styles should be downloaded for multicolor cards and card variety? → A: Download all frames for all card types possible, focusing on most common styles (historic frames, creatures, standard layouts) - exclude full art and fancy specialty variants
+
+- Q: How should text positioning work when compositing card data onto templates? → A: Use image analysis/OCR to dynamically detect text box boundaries in each template, combined with fuzzy filename matching for template selection (e.g., match "blue_creature" pattern variations)
+
+- Q: What should happen when card artwork URLs (pic field) are invalid, unreachable, or return non-image content? → A: Fail proxy generation for that specific card, log error with card name and URL, continue processing remaining cards (all cards are custom, no fallback artwork sources available)
+
+- Q: How should batch organization of generated proxies prioritize folder grouping (color vs type)? → A: Use voting algorithm with Markov tree to dynamically determine most likely optimal grouping combination based on parsed card distribution patterns (e.g., if 80% creatures, use color-first; if evenly distributed types, use type-first)
+
+- Q: How should the parser handle spatial relationships between field labels and values in cells? → A: Use dynamic cell matching with adjacency detection - field values are in literally adjacent/neighboring cells to their labels but may have positional offset, requiring proximity-based matching rather than fixed row/column assumptions
+
+- Q: What architectural pattern should MCTS implementation follow for consistency with existing monorepo algorithms? → A: Follow Reflexion algorithm template structure (BaseAlgorithm inheritance, instructor-based, similar behave testing patterns, stateless execution with iteration_context support)
+
+- Q: Which backend should be used for template image analysis and MCTS layout optimization to minimize compute costs? → A: Use VLM (Vision Language Model) with Ollama for compute offloading (template region detection, text box boundary analysis, layout quality scoring), leveraging existing monorepo utilities (PerceptInterface, Instructor framework)
+
+- Q: What is the ideal testing pattern for fast feedback on tractability of VLM + MCTS integration? → A: Incremental validation: (1) Test VLM integration with Reflexion algorithm first (validate VLM+instructor works), (2) Write MCTS algorithm following Reflexion template, (3) Write behave tests for MCTS to audit correctness, (4) Test MCTS on grid world domain (known good test case with simple layout constraints), (5) Apply to Hellcube Excel use case (production problem)
+
+## User Scenarios & Testing *(mandatory)*
+
+### User Story 1 - Semantic Spreadsheet Parser (Priority: P1)
+
+As a cube curator, I want the system to automatically understand and extract card data from my unstructured Hellcube spreadsheet, so that I don't have to manually restructure hundreds of card entries into a specific format.
+
+**Why this priority**: This is the foundational capability - without parsing the spreadsheet, we can't generate any proxies. This delivers immediate value by converting messy human-readable data into machine-processable structures.
+
+**Independent Test**: Can be fully tested by providing the Hellcube AJ.xlsx file and verifying that the system extracts all cards with their name, types, text abilities, flavor text, mana cost, power/toughness, and author information correctly grouped by card.
+
+**Acceptance Scenarios**:
+
+1. **Given** a spreadsheet with card data spread across multiple rows with field labels (name, Types, text, flavor, Stats, Author), **When** the parser processes it, **Then** each card is extracted as a structured object with all fields correctly associated
+2. **Given** a card with multiple "text" rows containing different abilities, **When** parsing occurs, **Then** all ability texts are combined into a single ordered list for that card
+3. **Given** a card name containing mana symbols in parentheses like "Batman Blue (Bu,Bu)(1)", **When** parsing occurs, **Then** the mana cost is extracted separately from the card name
+
+---
+
+### User Story 2 - MTG Template Research & Download (Priority: P2)
+
+As a proxy generator, I want to automatically research and download professional-quality MTG card templates from online sources, so that my proxies look authentic and printable.
+
+**Why this priority**: High-quality templates make the difference between amateur-looking proxies and professional print-ready cards. This can run independently after we know what card types we need (creatures, planeswalkers, artifacts, lands).
+
+**Independent Test**: Can be tested independently by providing a list of required card frame types (e.g., "blue creature", "legendary planeswalker", "artifact land") and verifying that the system downloads appropriate templates for each type.
+
+**Acceptance Scenarios**:
+
+1. **Given** a need for creature card templates, **When** the system researches MTG templates online, **Then** it downloads high-resolution creature frames for all color combinations found in the Hellcube
+2. **Given** special card types like "Legendary Planeswalker" or "Artifact Land", **When** template research occurs, **Then** the correct specialty frames are identified and downloaded
+3. **Given** templates already exist locally, **When** the download process runs, **Then** existing templates are reused without re-downloading
+
+---
+
+### User Story 3 - Proxy Card Generation (Priority: P3)
+
+As a cube owner, I want to generate print-ready proxy cards by combining my card data with professional templates, so that I can print physical copies for gameplay.
+
+**Why this priority**: This is the final output step that delivers the tangible product. It depends on having both parsed card data (US1) and templates (US2), so it comes last in priority.
+
+**Independent Test**: Can be tested by providing structured card data and templates, then verifying that generated proxy images have correctly positioned text, images, mana symbols, and are print-ready at 300 DPI.
+
+**Acceptance Scenarios**:
+
+1. **Given** a parsed card with name, type, abilities, and stats, **When** proxy generation runs, **Then** a print-ready image is created with all card elements properly positioned on the template
+2. **Given** a card with custom artwork URLs in the "pic" field, **When** generating proxies, **Then** the artwork is downloaded and composited onto the card template
+3. **Given** 200+ cards in the Hellcube, **When** batch proxy generation runs, **Then** all cards are generated and organized by color/type for easy printing
+
+---
+
+### Edge Cases
+
+- **What happens when a spreadsheet cell contains merged data or formatting?**
+  - Parser extracts raw text values, ignoring Excel formatting, and uses semantic heuristics (keywords like "name:", "text:", field position patterns) combined with dynamic adjacency detection to group related cells (field values are in neighboring cells with potential positional offset)
+
+- **How does the system handle cards with incomplete data (missing flavor text, missing power/toughness)?**
+  - Required fields (name, type) cause validation warnings; optional fields (flavor, author) are left blank on the proxy card template
+
+- **What happens when template URLs are broken or images are unavailable?**
+  - System falls back to local template library if available; if unavailable, generates placeholder frames with solid color backgrounds matching card colors
+
+- **What happens when card artwork URLs (pic field) are invalid or unreachable?**
+  - Proxy generation fails for that specific card with logged error (card name + URL), but processing continues for remaining cards since all artwork is custom with no fallback sources
+
+- **How does the system handle unusual mana costs or hybrid mana symbols?**
+  - Mana cost parser recognizes standard notation (Bu, Rd, Gn, Wt, Bk, Cl) and converts to standard MTG symbols; unrecognized symbols are rendered as text
+
+- **What happens when card text contains special MTG keywords like "Deathtouch", "Flash", "Kicker"?**
+  - Text is rendered as-is on the card; optionally, keyword abilities can be bolded or icon-decorated if template supports it
+
+## Requirements *(mandatory)*
+
+### Functional Requirements
+
+- **FR-001**: System MUST parse unstructured Excel spreadsheet data by detecting semantic patterns (field labels like "name", "Types", "text", "flavor", "Stats", "Author") and grouping related rows into card objects, using hybrid horizontal-vertical detection (4 cards per row across columns 2-9, with vertical field label grouping) combined with dynamic adjacency-based cell matching (field values in neighboring cells to labels with potential positional offset)
+
+- **FR-002**: System MUST extract mana costs from card names by parsing parenthetical notation (e.g., "(Bu,Bu)(1)" means two blue mana plus one generic mana) and infer card color from mana symbols (Bu→blue, Rd→red, Gn→green, Wt→white, Bk→black, Cl→colorless, mixed symbols→multicolor)
+
+- **FR-003**: System MUST combine multiple "text" field rows for a single card into an ordered list of abilities
+
+- **FR-004**: System MUST extract power/toughness from "Stats" fields formatted as datetime objects or text (e.g., "2/4", or parse from dates like "2025-02-04" as "2/4")
+
+- **FR-004a**: System MUST infer primary card type (Creature, Planeswalker, Artifact, Enchantment, Instant, Sorcery, Land) from the Types field by extracting the first word after the dash (e.g., "Creature- Human, Batman" → primary_type="Creature", subtypes=["Human", "Batman"])
+
+- **FR-004b**: System MUST detect legendary status by checking for the "Legendary" keyword prefix in the Types field (e.g., "Legendary Planeswalker" → legendary=True)
+
+- **FR-005**: System MUST research and identify MTG card template sources by searching for "MTG card template", "Magic card blank", or "MTG proxy template" and filtering for high-resolution images (minimum 300 DPI, 750x1050 pixels)
+
+- **FR-006**: System MUST download card templates for all color combinations present in the Hellcube (blue, black, green, red, white, colorless, multicolor) plus all dual-color pairs (WU, UB, BR, RG, GW, WB, UR, BG, RW, GU)
+
+- **FR-007**: System MUST download templates for all standard card types (creatures, planeswalkers, artifacts, enchantments, lands, instants, sorceries) and specialty variants (legendary creatures, legendary planeswalkers, artifact creatures, enchantment creatures), prioritizing historic/standard frame styles and excluding full-art or showcase variants
+
+- **FR-008**: System MUST generate proxy card images by compositing card data onto templates with proper text positioning (name, type line, rules text box, flavor text, power/toughness), using VLM (Vision Language Model) via Ollama to detect template regions, then Monte Carlo Tree Search (MCTS) to optimize element placement within detected boundaries for maximum readability and MTG convention compliance
+
+- **FR-008a**: System MUST use fuzzy filename matching to select appropriate templates based on card attributes (e.g., match card with color="blue", type="Creature", legendary=True to templates matching patterns like "blue*creature*legend*.png" with tolerance for naming variations)
+
+- **FR-009**: System MUST download custom card artwork from URLs specified in the spreadsheet's "pic" field when provided; if artwork URL is invalid/unreachable or returns non-image content, proxy generation MUST fail for that card with logged error (card name + URL) while continuing to process remaining cards
+
+- **FR-010**: System MUST render mana symbols using standard MTG iconography (converting Bu→blue mana, Rd→red mana, Wt→white, Gn→green, Bk→black, Cl→colorless)
+
+- **FR-011**: System MUST generate output images at print-ready resolution (300 DPI minimum, poker card size 2.5" x 3.5" = 750x1050 pixels)
+
+- **FR-012**: System MUST organize generated proxies using dynamic folder grouping strategy determined by voting algorithm with Markov tree analysis of card distribution patterns (e.g., if 80%+ creatures → color-first grouping like blue/creatures/, red/creatures/; if evenly distributed types → type-first grouping like creatures/blue/, planeswalkers/red/)
+
+- **FR-013**: System MUST validate that each extracted card has required fields (name, type) and warn about missing data before proxy generation
+
+### Non-Functional Requirements
+
+- **NFR-001**: Spreadsheet parsing MUST complete within 30 seconds for files up to 500 cards
+
+- **NFR-002**: Template downloads MUST support batch fetching of 10+ templates concurrently
+
+- **NFR-003**: Proxy generation MUST support batch processing of 200+ cards with progress reporting
+
+- **NFR-004**: Generated proxy images MUST be high-quality PNG files suitable for professional printing (lossless compression, 300 DPI)
+
+### Key Entities *(include if feature involves data)*
+
+- **Card**: Represents a single MTG custom card with attributes including name, mana cost (parsed from name), inferred color (derived from mana symbols), primary card type (Creature/Planeswalker/Artifact/etc., extracted from Types field), legendary status (boolean, detected from "Legendary" keyword), subtypes (list extracted from Types field after dash), abilities (list of text entries), flavor text, power/toughness (for creatures), author, and optional artwork URL
+
+- **Spreadsheet Cell Group**: Represents a collection of related spreadsheet cells that form a single card definition, identified by semantic field labels (name, Types, text, flavor, Stats, Author) and grouped by spatial proximity
+
+- **Card Template**: Represents a visual frame/border for a card type and color combination, with text box boundaries detected dynamically via image analysis (rather than hardcoded coordinates), matched to cards using fuzzy filename pattern matching
+
+- **Mana Cost**: Parsed representation of a card's casting cost, containing counts of each mana color (blue, black, green, red, white, colorless, generic) extracted from parenthetical notation
+
+- **Template Source**: Online resource (URL) from which card templates can be downloaded, categorized by card type, color, and frame style
+
+## Success Criteria *(mandatory)*
+
+### Measurable Outcomes
+
+- **SC-001**: System successfully parses 95%+ of cards from the Hellcube AJ.xlsx file with all required fields (name, type) correctly extracted
+
+- **SC-002**: Mana cost extraction correctly parses 100% of standard notation formats ((Bu), (Rd,Rd), (Wt)(2), etc.) into structured mana objects
+
+- **SC-003**: Template research identifies and downloads templates for all 6 primary MTG colors, all 10 dual-color pairs, multicolor, and all standard card type variants (minimum 50+ distinct template types covering all color-type combinations)
+
+- **SC-004**: Proxy generation produces print-ready images for all parsed cards within 5 minutes for the complete 200+ card Hellcube
+
+- **SC-005**: Generated proxies have all card elements properly positioned with readable text at print size (2.5" x 3.5" physical card dimensions)
+
+- **SC-006**: System handles cards with missing optional fields (flavor text, author, custom artwork) by generating valid proxies with those fields blank
+
+- **SC-007**: Batch processing organizes generated proxies using optimal folder structure determined by Markov tree voting algorithm (grouping strategy adapts to card distribution - e.g., creature-heavy decks use color-first, balanced decks use type-first)
+
+- **SC-008**: End-to-end workflow (spreadsheet parse → template download → proxy generation) completes without manual intervention for standard Hellcube format
+
+## Assumptions
+
+- The Hellcube spreadsheet follows the observed pattern: field labels in one cell/row, followed by field values, with cards separated by author rows (AJ, Joey, Chat GPT)
+
+- Card names contain mana costs in parenthetical notation at the end (e.g., "Card Name (Rd,Rd)(1)")
+
+- "Stats" field contains power/toughness information, potentially formatted as dates (e.g., "2025-02-04" meaning 2/4) or as text ratios
+
+- MTG card templates are available from public sources (community resources, fan sites, or open design assets)
+
+- Users want print-ready output suitable for home/professional printing on standard poker card stock
+
+- The "pic" field in the spreadsheet contains either URLs to artwork or is blank (system doesn't need to generate original artwork)
+
+- Standard MTG mana symbol fonts/icons are available or can be downloaded as part of template assets
+
+## Dependencies
+
+- **Excel file processing**: Python pandas library or similar for reading .xlsx files and extracting cell data
+
+- **Image processing**: PIL/Pillow or similar for compositing card data onto templates, rendering text, and generating final images
+
+- **HTTP skills**: Existing domain-agnostic http/fetch-json and http/download-file skills for researching and downloading templates
+
+- **Semantic reasoning**: Pattern matching and heuristics for identifying field types from unstructured cell data (may use simple keyword matching or ML-based text classification)
+
+- **MCTS Algorithm**: Monte Carlo Tree Search implementation from ../monorepo/agentic/algorithms/mcts/ following Reflexion template pattern (BaseAlgorithm inheritance, instructor-based structured output, behave testing with iteration_context support)
+
+- **VLM Backend**: Vision Language Model via Ollama for compute offloading (template image analysis, text box boundary detection, layout quality evaluation) - reduces cloud API costs by running locally. Uses existing ../monorepo/agentic/core/interfaces/percept_interface.py (PerceptInterface with VLM support) and ../monorepo/agentic/core/utils/instructor.py (Instructor with Ollama backend)
+
+- **Instructor Framework**: Existing ../monorepo/agentic/core/utils/instructor.py provides structured output generation, backend switching (claude_code/ollama/test), and BaseModel validation for MCTS and VLM integration
+
+## Out of Scope
+
+- Generating original card artwork (system uses URLs provided in spreadsheet or leaves artwork blank)
+- Automated card balance analysis or rules validation
+- Integration with online printing services (output is local files; printing is manual)
+- Support for non-English cards or alternative MTG languages
+- Creating custom card frames or templates from scratch (uses existing template resources)
+- Real-time collaboration or multi-user spreadsheet editing
+- Automatic card legality checking for official MTG formats
