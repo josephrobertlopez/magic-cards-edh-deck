@@ -508,11 +508,26 @@ class YAMLWorkflowOrchestrator:
                 outputs_spec = step.get("outputs", {})
                 if outputs_spec and response:
                     # Temporarily add 'result' to context for output expressions
-                    context.set_variable("result", response.get("result"))
+                    result_data = response.get("result")
+                    context.set_variable("result", result_data)
                     # Store the full result so {{result.field}} references work
-                    context.set_variable(f"steps.{step_name}.result", response.get("result"))
-                    # Also evaluate and store each named output
+                    context.set_variable(f"steps.{step_name}.result", result_data)
+
+                    # Validate and evaluate each named output
                     for output_name, output_expr in outputs_spec.items():
+                        # Validate {{result.field}} expressions reference existing fields
+                        import re
+                        result_refs = re.findall(r'\{\{result\.(\w+)\}\}', str(output_expr))
+                        if result_refs and isinstance(result_data, dict):
+                            for field in result_refs:
+                                if field not in result_data:
+                                    raise WorkflowValidationError(
+                                        skill_name=step.get("skill", "unknown"),
+                                        step_index=step_index,
+                                        line_number=0,  # YAML line tracking not available here
+                                        message=f"Output aliasing failed: Field '{field}' not found in skill result. Available fields: {list(result_data.keys())}"
+                                    )
+
                         # Substitute variables in the expression (e.g., "{{result.manifest_file}}")
                         output_value = context.substitute_variables(output_expr)
                         context.set_variable(f"steps.{step_name}.outputs.{output_name}", output_value)
@@ -606,11 +621,26 @@ class YAMLWorkflowOrchestrator:
             outputs_spec = step.get("outputs", {})
             if outputs_spec and response:
                 # Temporarily add 'result' to context for output expressions
-                context.set_variable("result", response)
+                result_data = response
+                context.set_variable("result", result_data)
                 # Store the full result so {{result.field}} references work
-                context.set_variable(f"steps.{step_name}.result", response)
-                # Also evaluate and store each named output
+                context.set_variable(f"steps.{step_name}.result", result_data)
+
+                # Validate and evaluate each named output
                 for output_name, output_expr in outputs_spec.items():
+                    # Validate {{result.field}} expressions reference existing fields
+                    import re
+                    result_refs = re.findall(r'\{\{result\.(\w+)\}\}', str(output_expr))
+                    if result_refs and isinstance(result_data, dict):
+                        for field in result_refs:
+                            if field not in result_data:
+                                raise WorkflowValidationError(
+                                    skill_name=step.get("skill", "unknown"),
+                                    step_index=step_index,
+                                    line_number=0,
+                                    message=f"Output aliasing failed: Field '{field}' not found in skill result. Available fields: {list(result_data.keys())}"
+                                )
+
                     # Substitute variables in the expression
                     output_value = context.substitute_variables(output_expr)
                     context.set_variable(f"steps.{step_name}.outputs.{output_name}", output_value)

@@ -39,64 +39,68 @@ steps:
     outputs:
       html_path: ".claude/downloads/commanders_{{inputs.commander_name}}.html"
 
-  # Step 2: Extract card names from HTML (MIGRATED: generic html/extract-css)
+  # Step 2: Extract card names from HTML
   - name: extract_cards
-    skill: html/extract-css
+    skill: data/extract-cards-from-html
     args:
-      html_content: "{{steps.fetch_page.outputs.html_path}}"
-      selector: ".card-name"
-      extract_type: "text"
+      html_file: "{{steps.fetch_page.outputs.html_path}}"
+      output_file: "decklists/{{inputs.commander_name}}_extracted.txt"
+      max_cards: "{{inputs.max_cards}}"
     outputs:
-      card_names: "{{result.items}}"
+      decklist_path: "decklists/{{inputs.commander_name}}_extracted.txt"
+      card_names: "{{result.card_names}}"
 
-  # Step 3: Fetch card metadata (MIGRATED: generic http/fetch-json)
+  # Step 3: Fetch card metadata (atomic skill - replaces monolithic fetch-cards)
   - name: fetch_card_data
-    skill: http/fetch-json
+    skill: data/fetch-card-data
     batch_mode: true
     args:
-      url: "https://api.scryfall.com/cards/named?fuzzy={{item}}"
-      method: "GET"
-      timeout: 10
+      card_names: "{{steps.extract_cards.outputs.card_names}}"
+      options:
+        fuzzy_match: true
+        include_prices: false
+        timeout: 10
     outputs:
-      cards_data: "{{result.data}}"
+      cards_data: "{{result.cards}}"
 
-  # Step 4: Download card images in parallel batches (MIGRATED: generic http/download-file - 10x speedup)
+  # Step 4: Download card images in parallel batches (atomic skill - 10x speedup)
   - name: fetch_card_images
-    skill: http/download-file
+    skill: images/fetch-card-image
     batch_mode: true
     args:
-      url: "{{item.image_uris.normal}}"
+      cards_data: "{{steps.fetch_card_data.outputs.cards_data}}"
       output_dir: "images"
-      timeout: 30
-      overwrite: false
+      options:
+        image_quality: "normal"
+        timeout: 30
+        validate_image: true
     outputs:
-      image_paths: "{{result.items}}"
+      images: "{{result.images}}"
+      image_paths: "{{result.images}}"
 
-  # Step 5: Generate PPTX slides (MIGRATED: generic document/grid-layout - 9 cards per slide = 3×3 grid)
+  # Step 5: Generate PPTX slides (atomic skill - 9 cards per slide)
   - name: generate_slides
-    skill: document/grid-layout
+    skill: presentation/generate-slide
     args:
       image_paths: "{{steps.fetch_card_images.outputs.image_paths}}"
-      rows: 3
-      columns: 3
-      output_path: "outputs/{{inputs.commander_name}}_proxies.pptx"
-      slide_width: 10
-      slide_height: 7.5
-      margin: 0.5
-      spacing: 0.1
+      output_file: "outputs/{{inputs.commander_name}}_proxies.pptx"
+      options:
+        cards_per_slide: 9
+        template: "template_2v6h_FIXED.pptx"
+        slide_width_inches: 10
+        slide_height_inches: 7.5
     outputs:
-      pptx_path: "{{result.path}}"
-      total_slides: "{{result.slide_count}}"
+      pptx_path: "{{result.pptx_path}}"
+      total_slides: "{{result.total_slides}}"
 
-  # Step 6: Convert PPTX to PDF (MIGRATED: generic document/convert-format)
+  # Step 6: Convert PPTX to PDF (optional - preserves existing functionality)
   - name: convert_to_pdf
-    skill: document/convert-format
+    skill: pdf/convert-to-pdf
     args:
-      input_file: "{{steps.generate_slides.outputs.pptx_path}}"
-      output_format: "pdf"
-      quality: "high"
+      pptx_file: "{{steps.generate_slides.outputs.pptx_path}}"
+      output_file: "outputs/{{inputs.commander_name}}_proxies.pdf"
     outputs:
-      pdf_path: "{{result.path}}"
+      pdf_path: "{{result.pdf_path}}"
 
 outputs:
   commander: "{{inputs.commander_name}}"
