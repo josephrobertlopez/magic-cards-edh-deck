@@ -27,6 +27,14 @@
 
 - Q: What is the ideal testing pattern for fast feedback on tractability of VLM + MCTS integration? → A: Incremental validation: (1) Test VLM integration with Reflexion algorithm first (validate VLM+instructor works), (2) Write MCTS algorithm following Reflexion template, (3) Write behave tests for MCTS to audit correctness, (4) Test MCTS on grid world domain (known good test case with simple layout constraints), (5) Apply to Hellcube Excel use case (production problem)
 
+### Session 2025-11-16
+
+- Q: The implementation reference shows VLM called on every rollout during simulation (potentially 100-300 calls per card), but Document 05 specifies a two-phase evaluation (heuristic MCTS + VLM top-5 only). Which VLM evaluation strategy should be implemented? → A: VLM every rollout - call VLM to score layout quality during each MCTS simulation phase (100-300 VLM evaluations per card for highest quality optimization)
+
+- Q: The implementation reference generates actions using a 10px position grid across entire regions, 7 font sizes, and 3 alignments, creating ~49,140 actions per element (intractable for MCTS). How should action space be constrained? → A: Strategic sampling (8 strategic positions: 4 corners + 4 midpoints) with element-specific constraints (name=center only, abilities=left only, mana_cost=right only, 1-3 font size options per element type) reducing to ~24 actions per element for computational tractability
+
+- Q: Does the MCTS algorithm implementation follow proper academic standards from canonical MCTS literature? → A: Yes - follows canonical MCTS from Browne et al. (2012) "A Survey of Monte Carlo Tree Search Methods" and Kocsis & Szepesvári (2006) UCB1 bandit algorithm. Four phases: (1) Selection via UCB1 formula [Q(node) + C√(ln(N_parent)/N_node)] with C=1.414 and unvisited nodes priority=∞, (2) Expansion adding one unexplored child, (3) Simulation via random rollout to terminal state + VLM evaluation, (4) Backpropagation updating visit counts and total rewards from leaf to root
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Semantic Spreadsheet Parser (Priority: P1)
@@ -119,7 +127,7 @@ As a cube owner, I want to generate print-ready proxy cards by combining my card
 
 - **FR-007**: System MUST download templates for all standard card types (creatures, planeswalkers, artifacts, enchantments, lands, instants, sorceries) and specialty variants (legendary creatures, legendary planeswalkers, artifact creatures, enchantment creatures), prioritizing historic/standard frame styles and excluding full-art or showcase variants
 
-- **FR-008**: System MUST generate proxy card images by compositing card data onto templates with proper text positioning (name, type line, rules text box, flavor text, power/toughness), using VLM (Vision Language Model) via Ollama to detect template regions, then Monte Carlo Tree Search (MCTS) to optimize element placement within detected boundaries for maximum readability and MTG convention compliance
+- **FR-008**: System MUST generate proxy card images by compositing card data onto templates with proper text positioning (name, type line, rules text box, flavor text, power/toughness), using VLM (Vision Language Model) via Ollama to detect template regions, then Monte Carlo Tree Search (MCTS) with VLM-guided evaluation on every rollout (100-300 VLM calls per card) and strategic action sampling (8 strategic positions per region: 4 corners + 4 midpoints, element-specific font/alignment constraints reducing to ~24 actions per element) to optimize element placement within detected boundaries for maximum readability and MTG convention compliance
 
 - **FR-008a**: System MUST use fuzzy filename matching to select appropriate templates based on card attributes (e.g., match card with color="blue", type="Creature", legendary=True to templates matching patterns like "blue*creature*legend*.png" with tolerance for naming variations)
 
@@ -139,7 +147,7 @@ As a cube owner, I want to generate print-ready proxy cards by combining my card
 
 - **NFR-002**: Template downloads MUST support batch fetching of 10+ templates concurrently
 
-- **NFR-003**: Proxy generation MUST support batch processing of 200+ cards with progress reporting
+- **NFR-003**: Proxy generation MUST support batch processing of 200+ cards with progress reporting (expected duration: 20-60 seconds per card with VLM-guided MCTS, leveraging Ollama local VLM for 0.2s evaluation time)
 
 - **NFR-004**: Generated proxy images MUST be high-quality PNG files suitable for professional printing (lossless compression, 300 DPI)
 
@@ -165,7 +173,7 @@ As a cube owner, I want to generate print-ready proxy cards by combining my card
 
 - **SC-003**: Template research identifies and downloads templates for all 6 primary MTG colors, all 10 dual-color pairs, multicolor, and all standard card type variants (minimum 50+ distinct template types covering all color-type combinations)
 
-- **SC-004**: Proxy generation produces print-ready images for all parsed cards within 5 minutes for the complete 200+ card Hellcube
+- **SC-004**: Proxy generation produces print-ready images for all parsed cards with MCTS+VLM optimization (expected duration: 1-3 hours for 200+ card Hellcube at 20-60s per card, depending on card complexity and convergence behavior)
 
 - **SC-005**: Generated proxies have all card elements properly positioned with readable text at print size (2.5" x 3.5" physical card dimensions)
 
@@ -201,7 +209,7 @@ As a cube owner, I want to generate print-ready proxy cards by combining my card
 
 - **Semantic reasoning**: Pattern matching and heuristics for identifying field types from unstructured cell data (may use simple keyword matching or ML-based text classification)
 
-- **MCTS Algorithm**: Monte Carlo Tree Search implementation from ../monorepo/agentic/algorithms/mcts/ following Reflexion template pattern (BaseAlgorithm inheritance, instructor-based structured output, behave testing with iteration_context support)
+- **MCTS Algorithm**: Monte Carlo Tree Search implementation from ../monorepo/agentic/algorithms/mcts/ following Reflexion template pattern (BaseAlgorithm inheritance, instructor-based structured output, behave testing with iteration_context support). Algorithm follows academic standards from Browne et al. (2012) "A Survey of Monte Carlo Tree Search Methods" and Kocsis & Szepesvári (2006) UCB1 bandit formula with C=√2≈1.414 exploration constant
 
 - **VLM Backend**: Vision Language Model via Ollama for compute offloading (template image analysis, text box boundary detection, layout quality evaluation) - reduces cloud API costs by running locally. Uses existing ../monorepo/agentic/core/interfaces/percept_interface.py (PerceptInterface with VLM support) and ../monorepo/agentic/core/utils/instructor.py (Instructor with Ollama backend)
 
