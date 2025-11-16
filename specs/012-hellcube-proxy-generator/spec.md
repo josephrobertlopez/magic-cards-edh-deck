@@ -17,7 +17,7 @@
 
 - Q: What should happen when card artwork URLs (pic field) are invalid, unreachable, or return non-image content? → A: Fail proxy generation for that specific card, log error with card name and URL, continue processing remaining cards (all cards are custom, no fallback artwork sources available)
 
-- Q: How should batch organization of generated proxies prioritize folder grouping (color vs type)? → A: Use voting algorithm with Markov tree to dynamically determine most likely optimal grouping combination based on parsed card distribution patterns (e.g., if 80% creatures, use color-first; if evenly distributed types, use type-first)
+- Q: How should batch organization of generated proxies prioritize folder grouping (color vs type)? → A: Use multi-strategy voting to dynamically determine optimal grouping: generate candidate strategies (color/type, type/color, etc.), score each card's fit to each strategy, select most-supported strategy (e.g., if 80% creatures vote for color-first, use that; if evenly distributed, use type/color)
 
 - Q: How should the parser handle spatial relationships between field labels and values in cells? → A: Use dynamic cell matching with adjacency detection - field values are in literally adjacent/neighboring cells to their labels but may have positional offset, requiring proximity-based matching rather than fixed row/column assumptions
 
@@ -34,6 +34,14 @@
 - Q: The implementation reference generates actions using a 10px position grid across entire regions, 7 font sizes, and 3 alignments, creating ~49,140 actions per element (intractable for MCTS). How should action space be constrained? → A: Strategic sampling (8 strategic positions: 4 corners + 4 midpoints) with element-specific constraints (name=center only, abilities=left only, mana_cost=right only, 1-3 font size options per element type) reducing to ~24 actions per element for computational tractability
 
 - Q: Does the MCTS algorithm implementation follow proper academic standards from canonical MCTS literature? → A: Yes - follows canonical MCTS from Browne et al. (2012) "A Survey of Monte Carlo Tree Search Methods" and Kocsis & Szepesvári (2006) UCB1 bandit algorithm. Four phases: (1) Selection via UCB1 formula [Q(node) + C√(ln(N_parent)/N_node)] with C=1.414 and unvisited nodes priority=∞, (2) Expansion adding one unexplored child, (3) Simulation via random rollout to terminal state + VLM evaluation, (4) Backpropagation updating visit counts and total rewards from leaf to root
+
+- Q: How should MCTSLayoutAlgorithm.execute() signature conform to BaseAlgorithm protocol requirements (on_trial, iteration_context parameters)? → A: Add on_trial and iteration_context parameters to execute() signature matching Reflexion pattern, extract card_data and template_regions from kwargs. MCTS ignores these parameters (SUPPORTS_ITERATION=False) but must accept them for protocol conformance. Signature: execute(problem, on_trial=None, iteration_context=None, **kwargs) where kwargs contains card_data and template_regions
+
+- Q: How should VLM evaluators pass images to instructor framework for template detection and layout scoring? → A: Use standard OpenAI multimodal message pattern with base64-encoded images in messages[].content array. Load image file, encode to base64, pass as {"type": "image_url", "image_url": {"url": "data:image/png;base64,{base64_data}"}} alongside text prompt. Works with existing instructor.from_openai() without modifying monorepo InstructorFramework
+
+- Q: Should the Excel parser spec specify exact columns (C, E, G, I) or use imprecise range (columns 2-9) and let implementation discover pattern? → A: Keep current "columns 2-9" description - implementation will discover that cards are in columns C, E, G, I with empty spacing columns between them through dynamic adjacency detection. Parser should iterate columns and skip empty ones rather than hardcoding specific column indices
+
+- Q: How should FR-012 folder organization voting work - what does "Markov tree voting algorithm" mean concretely? → A: Generate multiple candidate folder organization strategies (color/type, type/color, multicolor-separate, etc.), then for each card vote which strategy it fits best. Select the most-filled/supported strategy as winner. Optionally present top 2-3 strategies to user for final refinement. Remove "Markov tree" terminology - use multi-strategy voting with card-level fit scoring instead
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -137,7 +145,7 @@ As a cube owner, I want to generate print-ready proxy cards by combining my card
 
 - **FR-011**: System MUST generate output images at print-ready resolution (300 DPI minimum, poker card size 2.5" x 3.5" = 750x1050 pixels)
 
-- **FR-012**: System MUST organize generated proxies using dynamic folder grouping strategy determined by voting algorithm with Markov tree analysis of card distribution patterns (e.g., if 80%+ creatures → color-first grouping like blue/creatures/, red/creatures/; if evenly distributed types → type-first grouping like creatures/blue/, planeswalkers/red/)
+- **FR-012**: System MUST organize generated proxies using dynamic folder grouping strategy determined by multi-strategy voting: generate candidate organization strategies (color/type, type/color, multicolor-separate, etc.), score each card's fit to each strategy, select the most-supported strategy as winner (e.g., if 80%+ creatures vote for color-first → use blue/creatures/, red/creatures/; if evenly distributed → use type/color). Optionally present top strategies to user for refinement
 
 - **FR-013**: System MUST validate that each extracted card has required fields (name, type) and warn about missing data before proxy generation
 
@@ -179,7 +187,7 @@ As a cube owner, I want to generate print-ready proxy cards by combining my card
 
 - **SC-006**: System handles cards with missing optional fields (flavor text, author, custom artwork) by generating valid proxies with those fields blank
 
-- **SC-007**: Batch processing organizes generated proxies using optimal folder structure determined by Markov tree voting algorithm (grouping strategy adapts to card distribution - e.g., creature-heavy decks use color-first, balanced decks use type-first)
+- **SC-007**: Batch processing organizes generated proxies using optimal folder structure determined by multi-strategy voting (grouping strategy adapts to card distribution - e.g., creature-heavy decks use color-first, balanced decks use type/color-first)
 
 - **SC-008**: End-to-end workflow (spreadsheet parse → template download → proxy generation) completes without manual intervention for standard Hellcube format
 
@@ -209,7 +217,7 @@ As a cube owner, I want to generate print-ready proxy cards by combining my card
 
 - **Semantic reasoning**: Pattern matching and heuristics for identifying field types from unstructured cell data (may use simple keyword matching or ML-based text classification)
 
-- **MCTS Algorithm**: Monte Carlo Tree Search implementation from ../monorepo/agentic/algorithms/mcts/ following Reflexion template pattern (BaseAlgorithm inheritance, instructor-based structured output, behave testing with iteration_context support). Algorithm follows academic standards from Browne et al. (2012) "A Survey of Monte Carlo Tree Search Methods" and Kocsis & Szepesvári (2006) UCB1 bandit formula with C=√2≈1.414 exploration constant
+- **MCTS Algorithm**: Monte Carlo Tree Search implementation from ../monorepo/agentic/algorithms/mcts/ following Reflexion template pattern (BaseAlgorithm inheritance with execute(problem, on_trial=None, iteration_context=None, **kwargs) signature, instructor-based structured output, behave testing). MCTS extracts card_data and template_regions from kwargs, ignores on_trial and iteration_context (SUPPORTS_ITERATION=False). Algorithm follows academic standards from Browne et al. (2012) "A Survey of Monte Carlo Tree Search Methods" and Kocsis & Szepesvári (2006) UCB1 bandit formula with C=√2≈1.414 exploration constant
 
 - **VLM Backend**: Vision Language Model via Ollama for compute offloading (template image analysis, text box boundary detection, layout quality evaluation) - reduces cloud API costs by running locally. Uses existing ../monorepo/agentic/core/interfaces/percept_interface.py (PerceptInterface with VLM support) and ../monorepo/agentic/core/utils/instructor.py (Instructor with Ollama backend)
 

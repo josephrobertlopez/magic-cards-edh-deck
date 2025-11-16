@@ -65,8 +65,8 @@ mcts = MCTSLayoutAlgorithm(
 def execute(
     self,
     problem: str,
-    card_data: Dict[str, Any],
-    template_regions: Dict[str, BoundingBox],
+    on_trial: Optional[Callable[[Dict[str, Any]], bool]] = None,
+    iteration_context: Optional[Dict[str, Any]] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """
@@ -74,9 +74,9 @@ def execute(
 
     Args:
         problem: JSON string describing the problem (for BaseAlgorithm protocol)
-        card_data: Card attributes (name, abilities, etc.)
-        template_regions: VLM-detected template bounding boxes
-        **kwargs: Optional overrides (max_rollouts, etc.)
+        on_trial: Unused (MCTS doesn't support trial callbacks, SUPPORTS_ITERATION=False)
+        iteration_context: Unused (MCTS is stateless single execution, SUPPORTS_ITERATION=False)
+        **kwargs: card_data (Dict), template_regions (Dict[str, BoundingBox]), max_rollouts override
 
     Returns:
         Dict with Result object:
@@ -122,8 +122,11 @@ template_regions = {
     'pt_box': BoundingBox(650, 980, 70, 50)
 }
 
+# BaseAlgorithm protocol: pass card_data and template_regions via kwargs
 result = mcts.execute(
-    problem=json.dumps({'card_data': card_data}),
+    problem=json.dumps({'description': 'Optimize MTG card layout'}),
+    on_trial=None,  # Not used by MCTS
+    iteration_context=None,  # Not used by MCTS
     card_data=card_data,
     template_regions=template_regions
 )

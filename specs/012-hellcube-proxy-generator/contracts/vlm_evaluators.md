@@ -101,19 +101,37 @@ Return bounding boxes in the specified format.
 **Implementation**:
 ```python
 def detect_regions(self, template_path: str) -> TemplateRegions:
+    import base64
+
     # Compute template hash
     with open(template_path, 'rb') as f:
-        template_hash = hashlib.sha256(f.read()).hexdigest()
+        image_bytes = f.read()
+        template_hash = hashlib.sha256(image_bytes).hexdigest()
 
     # Check cache
     if template_hash in self.cache:
         return self.cache[template_hash]
 
-    # VLM detection
-    regions = self.instructor.generate_structured(
-        prompt=TEMPLATE_DETECTION_PROMPT,
+    # Encode image to base64 for VLM
+    base64_image = base64.b64encode(image_bytes).decode('utf-8')
+
+    # VLM detection using multimodal message pattern
+    # Direct call to instructor client with image in messages
+    from openai import OpenAI
+    client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
+    import instructor
+    instructor_client = instructor.from_openai(client)
+
+    regions = instructor_client.chat.completions.create(
+        model="llava:13b",
         response_model=TemplateRegions,
-        image_path=template_path
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "text", "text": TEMPLATE_DETECTION_PROMPT},
+                {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{base64_image}"}}
+            ]
+        }]
     )
 
     # Validate detection
@@ -276,12 +294,20 @@ Return a structured score with reasoning.
 **Implementation**:
 ```python
 def score_layout(self, layout_state: LayoutState, card_data: Dict = None) -> float:
+    import base64
+    from io import BytesIO
+
     # Validate terminal state
     if not layout_state.is_terminal():
         raise ValueError("Layout must be terminal (all elements placed)")
 
-    # Render layout to image
+    # Render layout to PIL Image
     rendered_image = self._render_layout(layout_state)
+
+    # Convert PIL Image to base64
+    buffer = BytesIO()
+    rendered_image.save(buffer, format='PNG')
+    base64_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
 
     # Format prompt with card context
     prompt = LAYOUT_SCORING_PROMPT.format(
@@ -292,11 +318,22 @@ def score_layout(self, layout_state: LayoutState, card_data: Dict = None) -> flo
         pt=card_data.get('power_toughness', 'N/A') if card_data else 'N/A'
     )
 
-    # VLM scoring
-    quality = self.instructor.generate_structured(
-        prompt=prompt,
+    # VLM scoring using multimodal message pattern
+    from openai import OpenAI
+    client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
+    import instructor
+    instructor_client = instructor.from_openai(client)
+
+    quality = instructor_client.chat.completions.create(
+        model="llava:13b",
         response_model=LayoutQuality,
-        image_data=rendered_image  # PIL Image object
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "text", "text": prompt},
+                {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{base64_image}"}}
+            ]
+        }]
     )
 
     return quality.overall_score

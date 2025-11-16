@@ -122,7 +122,7 @@ magic-cards-edh-deck/
 │   ├── mana_cost_parser.py             # NEW: Mana notation → symbols
 │   ├── template_matcher.py             # NEW: Fuzzy filename matching
 │   ├── proxy_compositor.py             # NEW: PIL-based image composition
-│   └── batch_organizer.py              # NEW: Markov tree voting for folder structure
+│   └── batch_organizer.py              # NEW: Multi-strategy voting for folder structure
 ├── tests/
 │   ├── unit/
 │   │   ├── test_hellcube_parser.py     # NEW: Excel parsing tests
