@@ -255,10 +255,10 @@ MCTS **discovers these nuances** through exploration. Heuristics **cannot** with
 **Folder organization** (color-first vs type-first) **IS** a simple heuristic problem:
 
 **Why?**
-- **Binary choice**: Two organizational strategies
+- **Binary choice**: Multiple organizational strategies
 - **Simple evaluation**: Count card distribution, compute once
 - **No sequential dependencies**: Grouping choice doesn't affect card content
-- **Closed-form solution**: Markov tree voting on distribution patterns
+- **Closed-form solution**: Multi-strategy voting on distribution patterns
 
 **Example**:
 ```python

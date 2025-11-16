@@ -802,7 +802,7 @@ Feature: Hellcube Proxy Generation with MCTS Layout
     Then all 200+ proxies should be generated
     And 95%+ should have quality score >= 0.8
     And the batch should complete within 10 minutes
-    And proxies should be organized by Markov tree voting
+    And proxies should be organized by multi-strategy voting
 
   Scenario: Handle card with invalid artwork URL
     Given a card with unreachable artwork URL
@@ -861,7 +861,7 @@ print(f"Avg rollouts: {df['rollouts'].mean():.1f}")
 - ✅ MCTS generates proxies for all cards
 - ✅ 95%+ cards have quality ≥0.8
 - ✅ Batch processing completes in <10 minutes
-- ✅ Markov tree voting organizes proxies optimally
+- ✅ Multi-strategy voting organizes proxies optimally
 - ✅ Artwork URL failures handled gracefully
 
 ---
@@ -907,7 +907,7 @@ FOR EACH Card:
        ↓
        output/{card_name}.png
   ↓
-[Markov Tree Voting] (FR-012 - Folder organization)
+[Multi-Strategy Voting] (FR-012 - Folder organization)
   ↓
 Organized folders:
   color/type/*.png  OR  type/color/*.png
