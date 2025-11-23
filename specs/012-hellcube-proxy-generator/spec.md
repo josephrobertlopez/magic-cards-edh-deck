@@ -43,6 +43,42 @@
 
 - Q: How should FR-012 folder organization voting work - what does "Markov tree voting algorithm" mean concretely? → A: Generate multiple candidate folder organization strategies (color/type, type/color, multicolor-separate, etc.), then for each card vote which strategy it fits best. Select the most-filled/supported strategy as winner. Optionally present top 2-3 strategies to user for final refinement. Remove "Markov tree" terminology - use multi-strategy voting with card-level fit scoring instead
 
+### Session 2025-11-22
+
+- Q: For Feature 012's Pydantic data structures (LayoutState, MCTSNode, TemplateRegions, LayoutQuality), should the implementation reuse validation infrastructure from branch 013 (update-presentations)? → A: **REVISED AFTER AUDIT** - No, implement Pydantic models natively in Feature 012 (de-coupled from branch 013). Branch 013's validation files do not exist yet, creating phantom dependency that blocks Phase 5 implementation.
+
+- Q: Option A (directly import branch 013's validation infrastructure) creates a dependency on branch 013. How should Feature 012 obtain these files? → A: **SUPERSEDED** - Not applicable, Feature 012 implements its own Pydantic validation models following defense-in-depth pattern (Layer 1: Python self-validation, Layer 2: bash wrapper re-validation) inspired by branch 013's design but independent implementation
+
+- Q: The spec states MCTS implementation goes in `../monorepo/agentic/algorithms/mcts/`. This creates a cross-repository dependency (Feature 012 in magic-cards-edh-deck repo modifying monorepo). Should MCTS actually live in the monorepo? → A: Implement MCTS code in monorepo first (../monorepo/agentic/algorithms/mcts/), then copy the implementation to magic-cards-edh-deck repo for Feature 012 to use independently (monorepo has canonical version, Feature 012 has local copy without cross-repo dependency)
+
+- Q: MCTS depends on monorepo's instructor framework and BaseAlgorithm. If MCTS is copied locally, should these dependencies also be copied? → A: Use git submodule for monorepo (keeps live link to monorepo utilities like instructor.py and base_algorithm.py without full duplication, while MCTS code lives locally in src/mcts/)
+
+- Q: Feature 012 needs to research and download MTG templates. Should it use existing domain-agnostic skills from .claude/skills/ (http/, html/, document/ folders)? → A: Yes - reuse existing skills from .claude/skills/http/ and .claude/skills/html/ for template research/download (proven, tested, consistent with feature description)
+
+- Q: The previous session cherry-picked branch 013's validation files. Should Feature 012 also analyze branch 013's skill orchestration pipeline code to understand execution patterns? → A: **REVISED AFTER AUDIT** - Yes, analyze branch 013's orchestration patterns via git worktree for inspiration, but implement Feature 012-specific orchestration independently (avoids dependency on branch 013's incomplete work)
+
+- Q: After analyzing branch 013's skill orchestration pipeline via git worktree, how should Feature 012 orchestrate its own domain-agnostic skills (template research, download, caching)? → A: **REVISED AFTER AUDIT** - Implement lightweight bash orchestration for Feature 012's skills (simple sequential execution with error handling), inspired by branch 013 patterns but independent. Defer complex orchestration framework until proven necessary.
+
+### Session 2025-11-22 (Audit Corrections)
+
+- Q: **AUDIT FINDING** - Branch 013's validation files (.claude/skills/helpers/*.py) do not exist yet. How should Feature 012 implement Pydantic validation? → A: Implement Pydantic models natively in Feature 012 (de-coupled). Add ~2 hours to Phase 2 for validation infrastructure development following defense-in-depth pattern.
+
+- Q: **AUDIT FINDING** - MCTS algorithm doesn't exist in monorepo yet (/monorepo/agentic/algorithms/mcts/ is missing). Should Feature 012 wait for monorepo implementation? → A: Implement MCTS directly in Feature 012 (src/mcts/) without monorepo dependency. If monorepo MCTS is needed later, extract from Feature 012 after validation.
+
+- Q: **AUDIT FINDING** - Git submodule setup steps missing from tasks.md. How should Feature 012 access monorepo utilities (BaseAlgorithm, instructor)? → A: Use git submodule with explicit setup documentation. Add T0 (environment smoke test) and update T1 (configure submodule) to tasks.md with clear instructions.
+
+- Q: **DEVELOPMENT STRATEGY** - Should Feature 012 development work forwards (Excel parse → templates → MCTS → proxies) or backwards from end goal? → A: Work backwards from single Hellcube row as end goal while developing MCTS in parallel. Target: Generate one proxy card from one spreadsheet row, then identify what MCTS components are needed to achieve that goal. Enables parallel work streams: (1) End-to-end pipeline development, (2) MCTS algorithm development, converging when MCTS integration point is reached.
+
+### Session 2025-11-22 (Implementation)
+
+- Q: How should the parser discover card group boundaries when vertical spacing varies (9-12 rows between groups in Hellcube AJ.xlsx)? → A: **IMPLEMENTATION INNOVATION** - Parser uses Monte Carlo Tree Search (MCTS) for card group boundary discovery, treating parsing as a search problem. State: current row position + discovered card groups. Actions: skip N rows or extract card at current position. Greedy heuristic: 20-row look-ahead to find next "name" row, prioritize extraction when at name row. Achieves 100% discovery rate (17/17 groups) on Hellcube dataset with variable spacing. Boundary detection: stop parsing when encountering second "name" row (indicates next card group start). Implementation in `src/parsers/mcts_parser.py` with integration in `src/parsers/hellcube_parser.py`. Performance: 59/60 cards extracted (98.3% success, 1 failure due to source data missing Types field).
+
+- Q: How should the system verify NFRs (NFR-001 parsing time <30s, NFR-003 per-card time 20-60s) are met during batch processing? → A: Implement progress reporting with timing metrics logged to stdout and optionally to file. Log: (1) Parsing phase duration for NFR-001 validation, (2) Per-card processing time for NFR-003 validation, (3) Total batch duration, (4) MCTS convergence metrics (rollouts used, final quality score). Output format: timestamped progress lines (e.g., "[2025-11-22 14:30:15] Card 42/200: Batman Blue - 45.2s, quality=0.85, converged after 127 rollouts"). Enables post-run NFR validation via log analysis without separate monitoring infrastructure.
+
+- Q: Should the codebase use centralized logging infrastructure (logger.py module, Python logging library) or simple print() statements for progress reporting? → A: KISS principle - use simple print() statements directly in each module (parser, MCTS, compositor). No centralized logging infrastructure. Each component prints timestamped progress to stdout when significant milestones occur. Redirect stdout to file if needed using shell redirection (`python proxy_generator.py > run.log`). Avoid premature abstraction.
+
+- Q: Where should Feature 012 code live - entirely in `magic-cards-edh-deck/src/`, split between repos, or migrated to monorepo? → A: All Feature 012 code lives in `magic-cards-edh-deck/src/` (parsers, models, MCTS, VLM, compositor, batch processing). Import shared monorepo utilities via git submodule at `monorepo/` for BaseAlgorithm interface and instructor framework only - no code duplication. Feature 012 remains self-contained and independently runnable in its own repository. Aligns with backwards-working methodology and audit-corrected architecture (MCTS implemented directly in Feature 012, not in monorepo).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Semantic Spreadsheet Parser (Priority: P1)
@@ -159,6 +195,10 @@ As a cube owner, I want to generate print-ready proxy cards by combining my card
 
 - **NFR-004**: Generated proxy images MUST be high-quality PNG files suitable for professional printing (lossless compression, 300 DPI)
 
+- **NFR-005** (**DEVELOPMENT STRATEGY**): Implementation MUST use backwards-working methodology - start with end goal (generate single proxy card from single Hellcube row), then work backwards to identify required MCTS components. This enables parallel development: (Stream 1) End-to-end pipeline from Excel row to proxy image, (Stream 2) MCTS algorithm development, converging at MCTS integration point. First milestone: One complete proxy from one spreadsheet row without MCTS optimization, then add MCTS incrementally.
+
+- **NFR-006** (**OBSERVABILITY**): System MUST log timestamped progress metrics to stdout (and optionally to file) for NFR validation: (1) Parsing phase duration (validates NFR-001 <30s target), (2) Per-card processing time (validates NFR-003 20-60s target), (3) Total batch duration, (4) MCTS convergence metrics per card (rollouts used, final quality score). Log format: `[YYYY-MM-DD HH:MM:SS] Card N/Total: <name> - <duration>s, quality=<score>, converged after <rollouts> rollouts`. Enables post-run performance analysis and bottleneck identification without separate monitoring infrastructure.
+
 ### Key Entities *(include if feature involves data)*
 
 - **Card**: Represents a single MTG custom card with attributes including name, mana cost (parsed from name), inferred color (derived from mana symbols), primary card type (Creature/Planeswalker/Artifact/etc., extracted from Types field), legendary status (boolean, detected from "Legendary" keyword), subtypes (list extracted from Types field after dash), abilities (list of text entries), flavor text, power/toughness (for creatures), author, and optional artwork URL
@@ -213,15 +253,25 @@ As a cube owner, I want to generate print-ready proxy cards by combining my card
 
 - **Image processing**: PIL/Pillow or similar for compositing card data onto templates, rendering text, and generating final images
 
-- **HTTP skills**: Existing domain-agnostic http/fetch-json and http/download-file skills for researching and downloading templates
+- **Domain-Agnostic Skills**: Existing skills from .claude/skills/ directory for template research and download:
+  - .claude/skills/http/download-file.md - HTTP file downloads
+  - .claude/skills/http/fetch-json.md - JSON API requests
+  - .claude/skills/html/ - HTML parsing for template source identification
+  - .claude/skills/document/ - Document generation utilities
 
 - **Semantic reasoning**: Pattern matching and heuristics for identifying field types from unstructured cell data (may use simple keyword matching or ML-based text classification)
 
-- **MCTS Algorithm**: Monte Carlo Tree Search implementation from ../monorepo/agentic/algorithms/mcts/ following Reflexion template pattern (BaseAlgorithm inheritance with execute(problem, on_trial=None, iteration_context=None, **kwargs) signature, instructor-based structured output, behave testing). MCTS extracts card_data and template_regions from kwargs, ignores on_trial and iteration_context (SUPPORTS_ITERATION=False). Algorithm follows academic standards from Browne et al. (2012) "A Survey of Monte Carlo Tree Search Methods" and Kocsis & Szepesvári (2006) UCB1 bandit formula with C=√2≈1.414 exploration constant
+- **Monorepo Git Submodule**: The monorepo repository added as git submodule at monorepo/ (relative path) to provide live access to shared utilities (instructor framework, BaseAlgorithm, PerceptInterface) without full code duplication. **Setup required in T0-T1**: `git submodule add <monorepo-url> monorepo && git submodule update --init --recursive`
 
-- **VLM Backend**: Vision Language Model via Ollama for compute offloading (template image analysis, text box boundary detection, layout quality evaluation) - reduces cloud API costs by running locally. Uses existing ../monorepo/agentic/core/interfaces/percept_interface.py (PerceptInterface with VLM support) and ../monorepo/agentic/core/utils/instructor.py (Instructor with Ollama backend)
+- **MCTS Algorithm** (**REVISED AFTER AUDIT**): Monte Carlo Tree Search implementation developed **directly in Feature 012** (src/mcts/) without monorepo dependency. Imports BaseAlgorithm from monorepo/ (via git submodule). Follows Reflexion template pattern (BaseAlgorithm inheritance with execute(problem, on_trial=None, iteration_context=None, **kwargs) signature, instructor-based structured output, behave testing). MCTS extracts card_data and template_regions from kwargs, ignores on_trial and iteration_context (SUPPORTS_ITERATION=False). Algorithm follows academic standards from Browne et al. (2012) "A Survey of Monte Carlo Tree Search Methods" and Kocsis & Szepesvári (2006) UCB1 bandit formula with C=√2≈1.414 exploration constant. **Effort adjustment**: +5-8 hours added to Phase 2 tasks for MCTS implementation (not copied from monorepo).
 
-- **Instructor Framework**: Existing ../monorepo/agentic/core/utils/instructor.py provides structured output generation, backend switching (claude_code/ollama/test), and BaseModel validation for MCTS and VLM integration
+- **VLM Backend**: Vision Language Model via Ollama for compute offloading (template image analysis, text box boundary detection, layout quality evaluation) - reduces cloud API costs by running locally. Uses monorepo/agentic/core/utils/instructor.py (via git submodule) for structured output generation.
+
+- **Instructor Framework**: Existing monorepo/agentic/core/utils/instructor.py (accessed via git submodule) provides structured output generation, backend switching (claude_code/ollama/test), and BaseModel validation for MCTS and VLM integration
+
+- **Validation Infrastructure** (**REVISED AFTER AUDIT - DE-COUPLED**): Pydantic models implemented natively in Feature 012 (.claude/skills/helpers/pydantic_models.py, .claude/skills/validation/). Defense-in-depth validation pattern (Layer 1: Python self-validation, Layer 2: bash wrapper re-validation) for MCTS data structures (LayoutState, MCTSNode, TemplateRegions, LayoutQuality). **Inspired by branch 013's design but independent implementation**. Optional: analyze branch 013 via git worktree for pattern inspiration. **Effort adjustment**: +2 hours added to Phase 2 for validation infrastructure development.
+
+- **Skill Orchestration** (**REVISED AFTER AUDIT - SIMPLIFIED**): Lightweight bash orchestration scripts for coordinating domain-agnostic skills (template research, download, batch processing). Simple sequential execution with error handling and retry logic. Optional: analyze branch 013's orchestration via git worktree for advanced patterns, but implement independently. Defer complex orchestration framework until proven necessary.
 
 ## Out of Scope
 

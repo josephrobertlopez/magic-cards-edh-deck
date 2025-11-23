@@ -133,34 +133,23 @@ magic-cards-edh-deck/
 │       └── proxy_generation.feature    # NEW: BDD for full workflow
 └── Hellcube AJ.xlsx                     # Input data (existing)
 
-../monorepo/agentic/                     # Referenced monorepo (NOT modified by this feature)
+../monorepo/agentic/                     # Referenced monorepo (accessed via git submodule)
 ├── algorithms/
-│   └── mcts/                            # NEW MCTS algorithm HERE
-│       ├── __init__.py
-│       ├── mcts_layout.py               # MCTSLayoutAlgorithm (BaseAlgorithm)
-│       ├── data_structures.py           # LayoutState, MCTSNode, LayoutAction
-│       ├── vlm_evaluators.py            # VLMTemplateDetector, VLMLayoutEvaluator
-│       └── utils.py                     # Helpers (estimate_text_width, etc.)
+│   ├── base_algorithm.py                # IMPORTED: BaseAlgorithm interface
+│   └── (other algorithms)               # EXISTING: chain_of_thought, react, reflexion, tree_of_thought
 ├── core/
 │   ├── interfaces/
-│   │   └── percept_interface.py         # EXISTING: VLM backend integration
+│   │   └── percept_interface.py         # EXISTING: VLM backend integration (optional)
 │   └── utils/
-│       └── instructor.py                # EXISTING: Structured output framework
-└── tests/
-    ├── unit/algorithms/mcts/            # NEW MCTS unit tests
-    │   ├── test_mcts_layout.py
-    │   ├── test_data_structures.py
-    │   └── test_vlm_evaluators.py
-    └── components/algorithms/           # NEW MCTS BDD tests
-        ├── mcts_layout.feature
-        └── steps/
-            └── mcts_layout_steps.py
+│       └── instructor.py                # IMPORTED: Structured output framework
+└── (tests in monorepo not shown)
 ```
 
-**Structure Decision**:
-- **Split architecture**: Hellcube-specific code in `magic-cards-edh-deck/src/`, reusable MCTS algorithm in `../monorepo/agentic/algorithms/mcts/`
-- **Rationale**: MCTS layout optimization is domain-agnostic (applies to any layout problem), while Excel parsing and MTG template logic are Hellcube-specific
-- **Integration**: Hellcube proxy generator imports `MCTSLayoutAlgorithm` from monorepo as a library dependency
+**Structure Decision** (**REVISED AFTER AUDIT**):
+- **MCTS Implementation Location**: MCTS implemented **directly in Feature 012** (`magic-cards-edh-deck/src/mcts/`), NOT in monorepo
+- **Monorepo Access**: Via git submodule - imports BaseAlgorithm interface and instructor framework only
+- **Rationale**: Audit revealed monorepo MCTS doesn't exist (phantom dependency). Feature 012 implements MCTS natively to avoid blocking. If monorepo MCTS needed later, extract from Feature 012 after validation.
+- **Integration**: MCTS imports `BaseAlgorithm` from `monorepo.agentic.algorithms.base_algorithm` (via git submodule)
 
 ## Complexity Tracking
 

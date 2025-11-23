@@ -1,1324 +1,422 @@
-# Implementation Tasks: Hellcube Proxy Generator
+# Tasks: Hellcube Proxy Generator
 
-**Branch**: `012-hellcube-proxy-generator`
-**Date**: 2025-11-16
-**Status**: Ready for Implementation
+**Input**: Design documents from `/specs/012-hellcube-proxy-generator/`
+**Prerequisites**: plan.md (✓), spec.md (✓), research.md (✓), data-model.md (✓), contracts/ (✓)
 
----
+**Organization**: Tasks organized using **backwards-working methodology** (NFR-005):
+- **Stream 1**: End-to-end pipeline (Excel → Template → Heuristic Compositor → Milestone 1)
+- **Stream 2**: MCTS algorithm development (parallel with Stream 1)
+- **Convergence**: MCTS integration after both streams complete
 
-## Task Organization
+**Tests**: Optional - only included if explicitly requested (not requested in spec)
 
-Tasks are organized into **6 phases**:
-1. **Phase 1**: Project Setup & Dependencies (Tasks 1-5)
-2. **Phase 2**: Foundational MCTS Algorithm (Tasks 6-15) - **BLOCKS US3**
-3. **Phase 3**: User Story 1 - Semantic Spreadsheet Parser (Tasks 16-25)
-4. **Phase 4**: User Story 2 - Template Research & Download (Tasks 26-30)
-5. **Phase 5**: User Story 3 - Proxy Card Generation (Tasks 31-45)
-6. **Phase 6**: Polish & Cross-Cutting Concerns (Tasks 46-52)
+## Format: `[ID] [P?] [Story] Description`
 
-**Total**: 52 tasks across 6 phases
+- **[P]**: Can run in parallel (different files, no dependencies)
+- **[Story]**: Which user story this task belongs to (US1, US2, US3)
+- Include exact file paths in descriptions
 
 ---
 
-## Dependency Graph
+## Phase 1: Setup (Shared Infrastructure)
+
+**Purpose**: Project initialization and environment configuration
+
+- [x] T001 Create project structure (src/, tests/unit/, tests/integration/) at repository root
+- [x] T002 Configure git submodule for monorepo access: `git submodule add <monorepo-url> monorepo && git submodule update --init --recursive`
+- [x] T003 Verify monorepo imports work: `python -c "from monorepo.agentic.algorithms.base_algorithm import BaseAlgorithm"`
+- [x] T004 Install Ollama VLM backend: `curl -fsSL https://ollama.com/install.sh | sh`
+- [x] T005 Download llava:13b model: `ollama pull llama:13b` (~4GB)
+- [x] T006 [P] Install Python dependencies (pandas, openpyxl, Pillow, requests, pydantic, instructor) via pip
+- [x] T007 [P] Create cache directory structure (.cache/template_regions.json, .cache/templates/)
+- [x] T008 [P] Setup pytest framework in tests/ with behave for BDD integration tests
+
+**Checkpoint**: Environment ready - parallel streams can begin
+
+---
+
+## Stream 1: End-to-End Pipeline (Backwards from Goal)
+
+**Goal**: Generate ONE complete proxy card from ONE Hellcube spreadsheet row using simple heuristic positioning (NO MCTS yet)
+
+**Runs in parallel with Stream 2 after Phase 1 completes**
+
+---
+
+### Phase 2a: User Story 1 - Semantic Spreadsheet Parser (Priority: P1) [STREAM 1]
+
+**Goal**: Extract structured card data from one row of Hellcube AJ.xlsx
+
+**Independent Test**: Parse first card row from spreadsheet, verify all fields extracted correctly (name, types, abilities, mana cost, P/T, author)
+
+#### Implementation for User Story 1
+
+- [ ] T009 [P] [US1] Create Card data model in src/models/card.py (name, mana_cost, color, type, legendary, subtypes, abilities, flavor, power_toughness, author, artwork_url)
+- [ ] T010 [P] [US1] Create ManaCost parser in src/parsers/mana_cost_parser.py (parse parenthetical notation: "(Bu,Bu)(1)" → {blue: 2, generic: 1})
+- [ ] T011 [P] [US1] Create color inference logic in src/parsers/color_inference.py (Bu→blue, Rd→red, Gn→green, Wt→white, Bk→black, mixed→multicolor)
+- [ ] T012 [US1] Create HellcubeExcelParser in src/parsers/hellcube_parser.py with dynamic adjacency detection (FR-001: detect field labels in columns 2-9, group by "AJ" markers)
+- [ ] T013 [US1] Implement type extraction logic in hellcube_parser.py (FR-004a: extract primary type from "Types" field, FR-004b: detect "Legendary" keyword)
+- [ ] T014 [US1] Implement P/T extraction in hellcube_parser.py (FR-004: parse "Stats" field, handle datetime format "2025-02-04" → "2/4")
+- [ ] T015 [US1] Implement multi-text-row combination in hellcube_parser.py (FR-003: merge multiple "text" rows into ordered abilities list)
+- [ ] T016 [US1] Add validation for required fields (FR-013: name, type required; warn on missing optional fields)
+
+**Checkpoint**: Parser extracts one card from Hellcube AJ.xlsx with all fields
+
+---
+
+### Phase 2b: User Story 2 - Template Research & Download (Priority: P2) [STREAM 1]
+
+**Goal**: Download ONE template matching first card's attributes (e.g., blue creature legendary)
+
+**Independent Test**: Given card attributes (color=blue, type=Creature, legendary=True), download appropriate template file
+
+**Runs in parallel with Phase 2a (US1) - different files**
+
+#### Implementation for User Story 2
+
+- [ ] T017 [P] [US2] Create TemplateMetadata model in src/models/template.py (color, card_type, legendary, file_path, sha256_hash)
+- [ ] T018 [P] [US2] Implement fuzzy template matcher in src/matching/template_matcher.py (FR-008a: match "blue*creature*legend*.png" patterns with tolerance)
+- [ ] T019 [US2] Create template research skill wrapper in src/skills/template_research.py (calls .claude/skills/html/ to search "MTG card template")
+- [ ] T020 [US2] Create template download skill wrapper in src/skills/template_download.py (calls .claude/skills/http/download-file.md, filter ≥300 DPI, 750×1050px per FR-005)
+- [ ] T021 [US2] Implement template caching logic in src/cache/template_cache.py (SHA-256 indexed, avoid re-downloads per FR-007)
+- [ ] T022 [US2] Add concurrent batch download support (NFR-002: 10+ templates in parallel using asyncio/aiohttp)
+
+**Checkpoint**: One template downloaded and cached for first card
+
+---
+
+### Phase 2c: Simple Heuristic Compositor (Priority: P3 Partial) [STREAM 1]
+
+**Goal**: Composite first card onto template using HARDCODED/HEURISTIC positioning (NO MCTS)
+
+**Independent Test**: Visual inspection - "Does this look like a Magic card?" with readable text
+
+**Depends on T009-T016 (parser) and T017-T022 (templates)**
+
+#### Implementation for Simple Compositor
+
+- [ ] T023 [US3] Create SimpleLayoutEngine in src/layout/simple_heuristic.py with hardcoded positioning:
+  - Name: centered at top (x=375, y=50)
+  - Mana cost: top-right (x=650, y=50)
+  - Type line: below name (x=50, y=150)
+  - Abilities: left-aligned in text box (x=50, y=250)
+  - P/T: bottom-right (x=650, y=950)
+  - Flavor: bottom text box (x=50, y=850)
+- [ ] T024 [US3] Create ProxyCompositor in src/compositor/proxy_compositor.py using Pillow for image composition (FR-011: 300 DPI, 750×1050px output)
+- [ ] T025 [US3] Implement mana symbol rendering in src/rendering/mana_symbols.py (FR-010: Bu→blue icon, Rd→red icon, etc.)
+- [ ] T026 [US3] Implement artwork download in src/download/artwork_downloader.py (FR-009: fetch from "pic" field URL, fail card on invalid URL, continue batch)
+- [ ] T027 [US3] Create end-to-end orchestration script in src/proxy_generator.py (parse one row → download template → download artwork → composite → save PNG)
+
+**🎯 MILESTONE 1: Single Proxy Card (Stream 1 Complete)**
+
+**Acceptance Criteria**:
+- [ ] T028 Run proxy_generator.py on FIRST ROW of Hellcube AJ.xlsx
+- [ ] T029 Verify output PNG exists (750×1050px, 300 DPI)
+- [ ] T030 Visual inspection: Name readable? Mana cost positioned correctly? Type line present? Abilities visible? P/T shown? (human validation)
+- [ ] T031 Time measurement: Single card generation <5 seconds (heuristic positioning, no MCTS overhead)
+
+**Expected Duration**: 8-12 hours (T001-T031)
+
+---
+
+## Stream 2: MCTS Algorithm Development (Parallel with Stream 1)
+
+**Goal**: Implement and validate MCTS layout optimizer on Grid World problem, ready for integration
+
+**Runs in parallel with Stream 1 (Phases 2a, 2b, 2c) after Phase 1 completes**
+
+---
+
+### Phase 3: Foundational MCTS Components (Priority: P0 - BLOCKS US3 MCTS Integration)
+
+**Purpose**: Core MCTS algorithm infrastructure following academic standards
+
+**⚠️ CRITICAL**: This phase enables MCTS integration in Phase 4 (replaces simple heuristics)
+
+#### MCTS Data Structures & Algorithm
+
+- [ ] T032 [P] Create Pydantic validation models in .claude/skills/helpers/pydantic_models.py:
+  - LayoutState (placed_elements, remaining_elements, template_regions, quality_score)
+  - MCTSNode (state, parent, children, visits, total_reward, untried_actions)
+  - BoundingBox (x, y, width, height)
+- [ ] T033 [P] Create TemplateRegions Pydantic model in .claude/skills/helpers/pydantic_models.py (name_box, mana_cost_box, type_line_box, text_boxes, pt_box, flavor_box)
+- [ ] T034 [P] Create LayoutQuality Pydantic model in .claude/skills/helpers/pydantic_models.py (readability_score, convention_compliance, aesthetic_balance, overall_score, issues)
+- [ ] T035 Create MCTSLayoutAlgorithm in src/mcts/mcts_algorithm.py inheriting BaseAlgorithm with execute(problem, on_trial=None, iteration_context=None, **kwargs) signature (extracts card_data, template_regions from kwargs)
+- [ ] T036 Implement UCB1 selection in src/mcts/selection.py (formula: Q(node) + C√(ln(N_parent)/N_node), C=√2≈1.414, unvisited priority=∞)
+- [ ] T037 Implement expansion phase in src/mcts/expansion.py (add one unexplored child per expansion)
+- [ ] T038 Implement strategic action sampling in src/mcts/actions.py (8 positions: 4 corners + 4 midpoints, element-specific constraints, ~24 actions per element per FR-008)
+- [ ] T039 Implement simulation/rollout in src/mcts/simulation.py (random policy to terminal state)
+- [ ] T040 Implement backpropagation in src/mcts/backpropagation.py (update visits and rewards from leaf to root)
+- [ ] T041 Add convergence criteria in src/mcts/convergence.py (max rollouts budget, score plateau detection, timeout)
+
+#### VLM Integration for MCTS
+
+- [ ] T042 [P] Create VLMTemplateDetector in src/vlm/template_detector.py using instructor.from_openai() with Ollama backend (detect template regions from image, output TemplateRegions Pydantic model)
+- [ ] T043 [P] Create VLMLayoutEvaluator in src/vlm/layout_evaluator.py using instructor.from_openai() (score layout quality per rollout, output LayoutQuality Pydantic model with overall_score 0.0-1.0)
+- [ ] T044 Implement base64 image encoding for VLM in src/vlm/image_encoding.py (OpenAI multimodal message pattern: {"type": "image_url", "image_url": {"url": "data:image/png;base64,{data}"}})
+- [ ] T045 Add VLM caching for template regions in src/cache/template_cache.py (SHA-256 indexed, 92.5% call reduction: 15 templates vs 200 cards)
+- [ ] T046 Configure Ollama backend switching in src/vlm/backend_config.py (BACKEND=ollama for production, BACKEND=test for fast iteration)
+
+**Checkpoint**: MCTS algorithm complete, VLM integration ready
+
+---
+
+### Phase 3.5: Grid World Validation (Priority: P0 - VALIDATES MCTS)
+
+**Goal**: Prove MCTS works on known-good test problem before applying to Hellcube
+
+**Independent Test**: MCTS solves grid world pathfinding/layout problem with convergence
+
+#### Grid World Test Problem
+
+- [ ] T047 Create GridWorldProblem in tests/integration/grid_world/problem.py (simple 2D layout constraints, known optimal solution)
+- [ ] T048 Implement grid world state representation in tests/integration/grid_world/state.py (compatible with LayoutState interface)
+- [ ] T049 Create mock VLM evaluator for grid world in tests/integration/grid_world/evaluator.py (deterministic scoring, no actual VLM calls)
+- [ ] T050 Write behave feature tests/integration/grid_world.feature (Given grid world problem, When MCTS runs, Then converges to optimal layout within N rollouts)
+- [ ] T051 Run MCTS on grid world problem and verify convergence (≥70% convergence rate per plan.md performance goals)
+
+**🎯 MILESTONE 2: MCTS Validated on Grid World (Stream 2 Complete)**
+
+**Acceptance Criteria**:
+- [ ] T052 Grid world problem solved by MCTS with ≥0.9 quality score
+- [ ] T053 Convergence within 100 rollouts (much faster than Hellcube's 100-300 due to simpler state space)
+- [ ] T054 UCB1 formula verified (proper exploration-exploitation balance)
+- [ ] T055 Memory usage <10MB for grid world tree (validates tree pruning works)
+
+**Expected Duration**: 10-15 hours (T032-T055)
+
+---
+
+## Convergence: MCTS Integration (After Both Streams Complete)
+
+**Depends on**: Milestone 1 (Stream 1) AND Milestone 2 (Stream 2)
+
+---
+
+### Phase 4: User Story 3 - MCTS-Optimized Proxy Generation (Priority: P3 Full)
+
+**Goal**: Replace simple heuristics with MCTS optimizer for production-quality layout
+
+**Independent Test**: Generate proxy for first card with MCTS optimization, verify quality score ≥0.8
+
+#### MCTS Integration Tasks
+
+- [ ] T056 [US3] Integrate VLMTemplateDetector into template_cache.py (detect regions on first template load, cache by SHA-256)
+- [ ] T057 [US3] Replace SimpleLayoutEngine with MCTSLayoutEngine in src/layout/mcts_layout_engine.py (calls MCTSLayoutAlgorithm.execute() with card_data and template_regions)
+- [ ] T058 [US3] Update ProxyCompositor to use MCTS-optimized positions from MCTSLayoutEngine output
+- [ ] T059 [US3] Add VLM layout quality validation in proxy_generator.py (verify final layout ≥0.8 score before saving)
+- [ ] T060 [US3] Implement batch processing with progress reporting in src/batch/batch_processor.py (NFR-003: 200+ cards, show ETA based on 20-60s per card)
+- [ ] T061 [US3] Create folder organization voting system in src/batch/folder_organizer.py (FR-012: multi-strategy voting - color/type vs type/color, select most-supported strategy)
+- [ ] T062 [US3] Add error handling for invalid artwork URLs (FR-009: log error with card name + URL, fail card, continue batch)
+
+**Checkpoint**: MCTS integration complete, single card optimized
+
+---
+
+### Phase 4.5: Batch Processing & Organization
+
+**Goal**: Process full Hellcube (200+ cards) with dynamic folder organization
+
+#### Batch Processing Tasks
+
+- [ ] T063 [US3] Run batch processor on full Hellcube AJ.xlsx (200+ cards)
+- [ ] T064 [US3] Verify folder organization strategy (validate multi-strategy voting selects optimal grouping)
+- [ ] T065 [US3] Performance validation: Batch completes in 1-3 hours (200 cards × 20-60s avg, NFR-003)
+- [ ] T066 [US3] Quality validation: ≥95% of cards have quality score ≥0.8 (SC-004, plan.md performance goals)
+- [ ] T067 [US3] Convergence validation: ≥70% of cards converge before max rollout budget (plan.md performance goals)
+
+**🎯 MILESTONE 3: Full Batch Processing Complete**
+
+**Acceptance Criteria**:
+- [ ] T068 200+ proxy PNGs generated in organized folders (blue/creatures/, planeswalkers/red/, etc.)
+- [ ] T069 All images 750×1050px, 300 DPI, lossless PNG (NFR-004)
+- [ ] T070 Total batch time 1-3 hours (within expected range)
+- [ ] T071 Manual spot check: 10 random proxies visually inspected for quality
+
+---
+
+## Phase 5: Polish & Cross-Cutting Concerns
+
+**Purpose**: Documentation, validation, and production readiness
+
+- [ ] T072 [P] Update quickstart.md with final setup instructions (Ollama installation, model download, dependency install)
+- [ ] T073 [P] Create usage documentation in docs/usage.md (CLI arguments, folder organization options, troubleshooting)
+- [ ] T074 [P] Add performance profiling in src/profiling/profiler.py (identify MCTS bottlenecks, VLM call overhead)
+- [ ] T075 Run quickstart.md validation (verify setup instructions work on fresh environment)
+- [ ] T076 Security review: Sanitize user input (spreadsheet paths, artwork URLs to prevent injection)
+- [ ] T077 Code cleanup: Remove debug logging, add proper error messages
+- [ ] T078 Final validation: Re-run full Hellcube batch, verify ≥95% success rate (SC-001, SC-004)
+
+---
+
+## Dependencies & Execution Order
+
+### Phase Dependencies
+
+- **Phase 1 (Setup)**: No dependencies - start immediately
+- **Stream 1 (Phases 2a, 2b, 2c)**: Depends on Phase 1 completion → Milestone 1 (single proxy with heuristics)
+- **Stream 2 (Phase 3, 3.5)**: Depends on Phase 1 completion → Milestone 2 (MCTS validated on grid world)
+- **Convergence (Phase 4, 4.5)**: Depends on BOTH Milestone 1 AND Milestone 2 → Milestone 3 (full MCTS batch)
+- **Phase 5 (Polish)**: Depends on Milestone 3
+
+### Parallel Stream Coordination
 
 ```
 Phase 1 (Setup)
-├─ T1: Project initialization
-├─ T2: Ollama installation
-├─ T3: Python dependencies
-├─ T4: Test framework setup
-└─ T5: Cache directory structure
-   ↓
-Phase 2 (MCTS Foundation) ─── BLOCKS US3 ───┐
-├─ T6-T10: Data structures                   │
-├─ T11-T14: MCTS core algorithm              │
-└─ T15: MCTS unit tests                      │
-   ↓                                          │
-Phase 3 (US1: Excel Parser) ─ Parallel ──┐   │
-├─ T16-T20: Card model & parsing         │   │
-└─ T21-T25: Parser tests                 │   │
-                                         │   │
-Phase 4 (US2: Template Download) ─ Parallel ┘│
-├─ T26-T28: Template matching                │
-└─ T29-T30: Template tests                   │
-   ↓                                          │
-Phase 5 (US3: MCTS Integration) ◄────────────┘
-├─ T31-T35: VLM evaluators
-├─ T36-T40: MCTS-Hellcube integration
-└─ T41-T45: Batch processor & tests
-   ↓
-Phase 6 (Polish)
-├─ T46-T48: Documentation
-├─ T49-T50: Performance validation
-└─ T51-T52: Final integration
+     ├──────────────────┬──────────────────┐
+     │                  │                  │
+Stream 1            Stream 2          (PARALLEL)
+Phase 2a (US1)      Phase 3 (MCTS)
+Phase 2b (US2)      Phase 3.5 (Grid)
+Phase 2c (Simple)
+     │                  │
+Milestone 1        Milestone 2
+     │                  │
+     └──────┬───────────┘
+            │
+      Phase 4 (MCTS Integration)
+      Phase 4.5 (Batch)
+            │
+      Milestone 3
+            │
+      Phase 5 (Polish)
 ```
 
-**Parallel Execution Opportunities**:
-- After Phase 2: **US1 (T16-T25) and US2 (T26-T30) can run in parallel**
-- Within Phase 5: T31-T35 (VLM) can partially overlap with T36-T40 (integration)
-
----
-
-## Phase 1: Project Setup & Dependencies
-
-### T1: Initialize project structure
-**Priority**: P0 (Blocker)
-**Estimate**: 15 minutes
-**Dependencies**: None
-**User Story**: Setup
-
-**Description**:
-Create directory structure for Hellcube-specific code and monorepo MCTS algorithm.
-
-**Acceptance Criteria**:
-- [ ] `magic-cards-edh-deck/src/` directory exists
-- [ ] `magic-cards-edh-deck/tests/unit/` directory exists
-- [ ] `magic-cards-edh-deck/tests/integration/` directory exists
-- [ ] `../monorepo/agentic/algorithms/mcts/` directory exists
-- [ ] `../monorepo/agentic/tests/unit/algorithms/mcts/` directory exists
-- [ ] `../monorepo/agentic/tests/components/algorithms/` directory exists for BDD tests
-
-**Files Created**:
-- Directory structure only (no code files yet)
-
----
-
-### T2: Install and configure Ollama VLM backend
-**Priority**: P0 (Blocker)
-**Estimate**: 20 minutes
-**Dependencies**: None
-**User Story**: Setup
-
-**Description**:
-Set up local Ollama server with llava-1.5 model for VLM template detection and layout scoring.
-
-**Acceptance Criteria**:
-- [ ] Ollama installed via `curl -fsSL https://ollama.com/install.sh | sh`
-- [ ] llava:13b model downloaded via `ollama pull llava:13b` (~4GB)
-- [ ] Ollama server running on localhost:11434
-- [ ] Test VLM call succeeds: `curl http://localhost:11434/api/generate -d '{"model":"llava:13b","prompt":"test"}'`
-
-**Validation**:
-```bash
-ollama list  # Should show llava:13b
-curl http://localhost:11434/api/generate -d '{"model":"llava:13b","prompt":"Describe this image","stream":false}'
-```
-
----
-
-### T3: Install Python dependencies
-**Priority**: P0 (Blocker)
-**Estimate**: 10 minutes
-**Dependencies**: T1
-**User Story**: Setup
-
-**Description**:
-Install all required Python packages for Excel parsing, VLM integration, MCTS algorithm, and testing.
-
-**Acceptance Criteria**:
-- [ ] Create `requirements.txt` with:
-  - pandas, openpyxl (Excel)
-  - Pillow (image composition)
-  - requests (HTTP)
-  - Pydantic (validation)
-  - instructor (VLM structured output)
-  - pytest, pytest-cov (unit tests)
-  - behave (BDD tests)
-- [ ] Run `pip install -r requirements.txt` successfully
-- [ ] Verify imports: `python -c "import pandas, openpyxl, PIL, instructor, pydantic"`
-
-**Files Created**:
-- `requirements.txt`
-
----
-
-### T4: Set up test framework and fixtures
-**Priority**: P0 (Blocker)
-**Estimate**: 20 minutes
-**Dependencies**: T3
-**User Story**: Setup
-
-**Description**:
-Configure pytest and behave testing frameworks with test data fixtures.
-
-**Acceptance Criteria**:
-- [ ] Create `pytest.ini` with coverage configuration
-- [ ] Create `behave.ini` for BDD tests
-- [ ] Create `tests/fixtures/nala_ground_truth.json` with manual template measurements
-- [ ] Create `tests/fixtures/test_cards.json` with 3 example cards (simple, medium, complex)
-- [ ] Test frameworks run: `pytest --version`, `behave --version`
-
-**Files Created**:
-- `pytest.ini`
-- `behave.ini`
-- `tests/fixtures/nala_ground_truth.json`
-- `tests/fixtures/test_cards.json`
-
----
-
-### T5: Create cache directory structure
-**Priority**: P1
-**Estimate**: 5 minutes
-**Dependencies**: T1
-**User Story**: Setup
-
-**Description**:
-Set up cache directories for VLM-detected template regions and mana cost symbol images.
-
-**Acceptance Criteria**:
-- [ ] Create `.cache/` directory (gitignored)
-- [ ] Create `.cache/template_regions.json` (empty initially)
-- [ ] Create `.cache/mana_symbols/` for downloaded symbols
-- [ ] Update `.gitignore` to exclude `.cache/`
-
-**Files Created**:
-- `.cache/` directory
-- `.cache/template_regions.json` (empty dict: `{}`)
-- Updated `.gitignore`
-
----
-
-## Phase 2: Foundational MCTS Algorithm (BLOCKS US3)
-
-### T6: Implement BoundingBox data structure
-**Priority**: P0 (Foundation for Phase 2)
-**Estimate**: 15 minutes
-**Dependencies**: T3
-**User Story**: US3 (Proxy Card Generation)
-
-**Description**:
-Create BoundingBox dataclass for template regions and overlap detection.
-
-**Acceptance Criteria**:
-- [ ] File: `../monorepo/agentic/algorithms/mcts/data_structures.py`
-- [ ] `BoundingBox` dataclass with `x, y, width, height` attributes
-- [ ] Method `contains_point(px, py) -> bool`
-- [ ] Method `overlaps(other: BoundingBox) -> bool`
-- [ ] Docstrings for all methods
-
-**Files Created**:
-- `../monorepo/agentic/algorithms/mcts/data_structures.py`
-
-**Tests Required**: T15 (unit tests for data structures)
-
----
-
-### T7: Implement CardElement and PlacedElement
-**Priority**: P0
-**Estimate**: 20 minutes
-**Dependencies**: T6
-**User Story**: US3
-
-**Description**:
-Create element representation classes for unpositional and positioned card elements.
-
-**Acceptance Criteria**:
-- [ ] Add to `data_structures.py`:
-  - `CardElement` dataclass (`element_type, text_content, required`)
-  - `PlacedElement` dataclass (`element_type, text_content, position, size, font_size, alignment`)
-  - Method `PlacedElement.get_bounding_box() -> BoundingBox`
-
-**Files Modified**:
-- `../monorepo/agentic/algorithms/mcts/data_structures.py`
-
----
-
-### T8: Implement LayoutAction
-**Priority**: P0
-**Estimate**: 25 minutes
-**Dependencies**: T7
-**User Story**: US3
-
-**Description**:
-Create action representation with `apply_to_state()` method.
-
-**Acceptance Criteria**:
-- [ ] `LayoutAction` dataclass (`element, region, position, font_size, alignment`)
-- [ ] Method `apply_to_state(state: LayoutState) -> LayoutState`
-- [ ] Validation: font_size in [8, 20], alignment in ["left", "center", "right"]
-- [ ] Integration with text width estimation (placeholder for now)
-
-**Files Modified**:
-- `../monorepo/agentic/algorithms/mcts/data_structures.py`
-
----
-
-### T9: Implement LayoutState
-**Priority**: P0
-**Estimate**: 30 minutes
-**Dependencies**: T7
-**User Story**: US3
-
-**Description**:
-Create MCTS search state representation.
-
-**Acceptance Criteria**:
-- [ ] `LayoutState` dataclass (`placed_elements, remaining_elements, template_regions, quality_score`)
-- [ ] Method `is_terminal() -> bool`
-- [ ] Method `has_overlap() -> bool`
-- [ ] Method `copy() -> LayoutState` (deep copy for simulation)
-- [ ] Validation: placed + remaining = total elements
-
-**Files Modified**:
-- `../monorepo/agentic/algorithms/mcts/data_structures.py`
-
----
-
-### T10: Implement MCTSNode
-**Priority**: P0
-**Estimate**: 35 minutes
-**Dependencies**: T9
-**User Story**: US3
-
-**Description**:
-Create MCTS tree node with UCB1 scoring.
-
-**Acceptance Criteria**:
-- [ ] `MCTSNode` dataclass (`state, parent, children, visits, total_reward, untried_actions`)
-- [ ] Method `is_fully_expanded() -> bool`
-- [ ] Method `is_terminal() -> bool`
-- [ ] Method `get_average_reward() -> float`
-- [ ] Method `get_ucb1_score(exploration_constant=1.414) -> float`
-- [ ] UCB1 formula: `Q(node) + C × sqrt(ln(N_parent) / N_node)`
-- [ ] Unvisited nodes return `float('inf')`
-
-**Files Modified**:
-- `../monorepo/agentic/algorithms/mcts/data_structures.py`
-
----
-
-### T11: Implement MCTS SELECT phase
-**Priority**: P0
-**Estimate**: 20 minutes
-**Dependencies**: T10
-**User Story**: US3
-
-**Description**:
-Implement UCB1 tree traversal for selection phase.
-
-**Acceptance Criteria**:
-- [ ] File: `../monorepo/agentic/algorithms/mcts/mcts_layout.py`
-- [ ] Class `MCTSLayoutAlgorithm(BaseAlgorithm)`
-- [ ] `SUPPORTS_ITERATION = False`
-- [ ] Method `_select(node: MCTSNode) -> MCTSNode`
-- [ ] Algorithm: traverse tree using highest UCB1 score until reaching unexpanded or terminal node
-
-**Files Created**:
-- `../monorepo/agentic/algorithms/mcts/mcts_layout.py`
-
----
-
-### T12: Implement MCTS EXPAND phase
-**Priority**: P0
-**Estimate**: 25 minutes
-**Dependencies**: T11
-**User Story**: US3
-
-**Description**:
-Implement node expansion by adding one child for an untried action.
-
-**Acceptance Criteria**:
-- [ ] Method `_expand(node: MCTSNode) -> MCTSNode`
-- [ ] Pop one untried action from node
-- [ ] Apply action to create new state
-- [ ] Create child node, link to parent
-- [ ] Return new child node
-
-**Files Modified**:
-- `../monorepo/agentic/algorithms/mcts/mcts_layout.py`
-
----
-
-### T13: Implement MCTS SIMULATE phase (with VLM placeholder)
-**Priority**: P0
-**Estimate**: 30 minutes
-**Dependencies**: T12
-**User Story**: US3
-
-**Description**:
-Implement random rollout simulation. Use placeholder VLM scoring for now (T31 adds real VLM).
-
-**Acceptance Criteria**:
-- [ ] Method `_simulate(node: MCTSNode, vlm_evaluator=None) -> float`
-- [ ] Random rollout: apply random actions until terminal state
-- [ ] If `vlm_evaluator` provided: call `vlm_evaluator.score_layout(terminal_state)`
-- [ ] Else (placeholder): return `0.5 + random.uniform(-0.1, 0.1)`
-- [ ] Return score in [0.0, 1.0]
-
-**Files Modified**:
-- `../monorepo/agentic/algorithms/mcts/mcts_layout.py`
-
----
-
-### T14: Implement MCTS BACKPROPAGATE phase and main loop
-**Priority**: P0
-**Estimate**: 40 minutes
-**Dependencies**: T13
-**User Story**: US3
-
-**Description**:
-Implement backpropagation and main MCTS loop with convergence detection.
-
-**Acceptance Criteria**:
-- [ ] Method `_backpropagate(node: MCTSNode, reward: float)`
-- [ ] Update visits and total_reward for all ancestors
-- [ ] Method `execute(problem, card_data, template_regions, **kwargs) -> Dict[str, Any]`
-- [ ] Main MCTS loop: SELECT → EXPAND → SIMULATE → BACKPROPAGATE
-- [ ] Convergence detection: stop when score stable within 0.01 for 10 rollouts
-- [ ] Return `Result(success, data, metadata)` per BaseAlgorithm protocol
-- [ ] Max rollouts: `max_steps × 100`
-
-**Files Modified**:
-- `../monorepo/agentic/algorithms/mcts/mcts_layout.py`
-
----
-
-### T15: Write MCTS unit tests
-**Priority**: P0
-**Estimate**: 60 minutes
-**Dependencies**: T14
-**User Story**: US3
-
-**Description**:
-Comprehensive unit tests for MCTS algorithm components.
-
-**Acceptance Criteria**:
-- [ ] File: `../monorepo/agentic/tests/unit/algorithms/mcts/test_mcts_layout.py`
-- [ ] Test: `test_ucb1_score_calculation()` - verify UCB1 formula
-- [ ] Test: `test_action_generation_strategic_sampling()` - verify ~24 actions per element
-- [ ] Test: `test_convergence_detection()` - verify early termination
-- [ ] Test: `test_mcts_initialization()` - verify defaults
-- [ ] Test: `test_select_phase()` - verify highest UCB1 selection
-- [ ] Test: `test_expand_phase()` - verify child creation
-- [ ] Test: `test_simulate_phase()` - verify random rollout
-- [ ] Test: `test_backpropagate_phase()` - verify ancestor updates
-- [ ] Coverage: >90%
-
-**Files Created**:
-- `../monorepo/agentic/tests/unit/algorithms/mcts/test_mcts_layout.py`
-- `../monorepo/agentic/tests/unit/algorithms/mcts/test_data_structures.py`
-
----
-
-## Phase 3: User Story 1 - Semantic Spreadsheet Parser
-
-### T16: Implement ManaCost model and parser
-**Priority**: P1
-**Estimate**: 30 minutes
-**Dependencies**: T5
-**User Story**: US1 (Semantic Spreadsheet Parser)
-
-**Description**:
-Parse mana cost notation `(Bu,Bu)(1)` → structured ManaCost object.
-
-**Acceptance Criteria**:
-- [ ] File: `src/mana_cost_parser.py`
-- [ ] `ManaCost` dataclass (`symbols: List[Tuple[str, int]], cmc: int`)
-- [ ] Function `parse_mana_cost(cost_string: str) -> ManaCost`
-- [ ] Symbol mapping: Wt→W, Bu→U, Bk→B, Rd→R, Gn→G, Cl→C
-- [ ] Generic mana: `(1)` → `('Generic', 1)`
-- [ ] Examples:
-  - `"(Bu,Bu)(1)"` → `ManaCost([('U', 2), ('Generic', 1)], cmc=3)`
-  - `"(Wt,Wt,Bu)"` → `ManaCost([('W', 2), ('U', 1)], cmc=3)`
-
-**Files Created**:
-- `src/mana_cost_parser.py`
-
----
-
-### T17: Implement Card model with Pydantic validation
-**Priority**: P1
-**Estimate**: 40 minutes
-**Dependencies**: T16
-**User Story**: US1
-
-**Description**:
-Create Card data model with full validation rules from data-model.md.
-
-**Acceptance Criteria**:
-- [ ] File: `src/models.py`
-- [ ] `Card` Pydantic BaseModel with fields: name, mana_cost, color, type, legendary, subtypes, abilities, flavor_text, power_toughness, author, artwork_url
-- [ ] Validators:
-  - name: min_length=1
-  - color: pattern `^(W|U|B|R|G|C|Multicolor)$`
-  - type: one of [Creature, Planeswalker, Artifact, Enchantment, Instant, Sorcery, Land]
-  - power_toughness: pattern `^\d+/\d+$` if present
-  - artwork_url: HttpUrl format
-- [ ] Method `infer_color() -> str` (from mana_cost symbols)
-
-**Files Created**:
-- `src/models.py`
-
----
-
-### T18: Implement HellcubeExcelParser core logic
-**Priority**: P1
-**Estimate**: 90 minutes
-**Dependencies**: T17
-**User Story**: US1
-
-**Description**:
-Parse Hellcube AJ.xlsx using dynamic adjacency detection for field labels.
-
-**Acceptance Criteria**:
-- [ ] File: `src/hellcube_parser.py`
-- [ ] Class `HellcubeExcelParser`
-- [ ] Method `parse_excel(file_path: str) -> List[Card]`
-- [ ] Detect "AJ" markers in columns C, D, E, F
-- [ ] Use Column A labels: "name bULK", "Types", "text", "flavor", "Stats", "Author"
-- [ ] Extract card name and mana cost from combined string
-- [ ] Parse Types field → (type, legendary, subtypes)
-- [ ] Handle datetime quirk: `2025-02-04` → P/T `"2/4"`
-- [ ] Collect multiple "text" rows into abilities list
-
-**Files Created**:
-- `src/hellcube_parser.py`
-
----
-
-### T19: Implement Excel parser helper methods
-**Priority**: P1
-**Estimate**: 60 minutes
-**Dependencies**: T18
-**User Story**: US1
-
-**Description**:
-Private parsing methods for name/cost extraction, type parsing, and stats handling.
-
-**Acceptance Criteria**:
-- [ ] Method `_parse_name_and_cost(raw_value: str) -> Tuple[str, ManaCost]`
-  - Extract name before last `(`, parse remaining as mana cost
-- [ ] Method `_parse_types(types_value: str) -> Tuple[str, bool, List[str]]`
-  - Detect "Legendary" keyword
-  - Extract primary type and subtypes (split on `-`)
-- [ ] Method `_parse_stats(stats_value: Any) -> Optional[str]`
-  - Handle str "2/4" or datetime(2025, 2, 4) → "2/4"
-- [ ] Custom exception `ParsingError(card_name, field, reason)`
-
-**Files Modified**:
-- `src/hellcube_parser.py`
-
----
-
-### T20: Add Excel parser validation and warnings
-**Priority**: P2
-**Estimate**: 30 minutes
-**Dependencies**: T19
-**User Story**: US1
-
-**Description**:
-Post-processing validation and optional field warnings.
-
-**Acceptance Criteria**:
-- [ ] Validate all cards have non-empty `name` and `type`
-- [ ] Validate `power_toughness` matches `\d+/\d+` pattern if present
-- [ ] Infer `color` from `mana_cost` symbols
-- [ ] Log warnings for missing optional fields (flavor_text, author, artwork_url)
-- [ ] Detect duplicate card names within same author
-
-**Files Modified**:
-- `src/hellcube_parser.py`
-
----
-
-### T21: Write unit tests for ManaCost parser
-**Priority**: P1
-**Estimate**: 30 minutes
-**Dependencies**: T16
-**User Story**: US1
-
-**Description**:
-Test all mana cost notation parsing cases.
-
-**Acceptance Criteria**:
-- [ ] File: `tests/unit/test_mana_cost_parser.py`
-- [ ] Test: single color `"(Bu,Bu)"` → `[('U', 2)]`
-- [ ] Test: mixed colors `"(Wt,Bu,Gn)"` → `[('W', 1), ('U', 1), ('G', 1)]`
-- [ ] Test: generic + colored `"(Rd,Rd)(3)"` → `[('R', 2), ('Generic', 3)]`
-- [ ] Test: no cost `""` → `ManaCost([], cmc=0)`
-- [ ] Test: invalid notation raises ParsingError
-
-**Files Created**:
-- `tests/unit/test_mana_cost_parser.py`
-
----
-
-### T22: Write unit tests for Card model
-**Priority**: P1
-**Estimate**: 40 minutes
-**Dependencies**: T17
-**User Story**: US1
-
-**Description**:
-Test Card Pydantic validation rules.
-
-**Acceptance Criteria**:
-- [ ] File: `tests/unit/test_models.py`
-- [ ] Test: valid creature card passes validation
-- [ ] Test: invalid card type raises ValidationError
-- [ ] Test: invalid P/T pattern raises ValidationError
-- [ ] Test: invalid color pattern raises ValidationError
-- [ ] Test: infer_color() correctly maps mana symbols to colors
-- [ ] Test: multicolor inference (2+ color symbols → "Multicolor")
-
-**Files Created**:
-- `tests/unit/test_models.py`
-
----
-
-### T23: Write unit tests for HellcubeExcelParser
-**Priority**: P1
-**Estimate**: 60 minutes
-**Dependencies**: T20
-**User Story**: US1
-
-**Description**:
-Test Excel parsing logic with fixture data.
-
-**Acceptance Criteria**:
-- [ ] File: `tests/unit/test_hellcube_parser.py`
-- [ ] Create test Excel file with 2 cards (one simple, one complex)
-- [ ] Test: parse_excel() returns List[Card]
-- [ ] Test: "AJ" marker detection
-- [ ] Test: field adjacency detection (Types, text, flavor, Stats)
-- [ ] Test: multiple abilities extraction
-- [ ] Test: datetime P/T quirk handling
-- [ ] Test: FileNotFoundError when file missing
-- [ ] Test: ValueError when structure invalid
-
-**Files Created**:
-- `tests/unit/test_hellcube_parser.py`
-- `tests/fixtures/test_hellcube_2cards.xlsx`
-
----
-
-### T24: Write BDD tests for Hellcube parsing
-**Priority**: P1
-**Estimate**: 45 minutes
-**Dependencies**: T23
-**User Story**: US1
-
-**Description**:
-End-to-end BDD scenarios for Excel parsing workflow.
-
-**Acceptance Criteria**:
-- [ ] File: `tests/integration/hellcube_parsing.feature`
-- [ ] Scenario: Parse simple card (vanilla creature)
-- [ ] Scenario: Parse complex card (3 abilities, legendary)
-- [ ] Scenario: Parse planeswalker card (no P/T)
-- [ ] File: `tests/integration/steps/hellcube_parsing_steps.py`
-- [ ] Steps: Given Excel file, When parse, Then card attributes correct
-
-**Files Created**:
-- `tests/integration/hellcube_parsing.feature`
-- `tests/integration/steps/hellcube_parsing_steps.py`
-
----
-
-### T25: Add Excel parser error handling tests
-**Priority**: P2
-**Estimate**: 30 minutes
-**Dependencies**: T23
-**User Story**: US1
-
-**Description**:
-Test error cases and edge conditions.
-
-**Acceptance Criteria**:
-- [ ] Test: malformed mana cost raises ParsingError
-- [ ] Test: missing "AJ" marker raises ValueError
-- [ ] Test: missing required field (name, type) raises ParsingError
-- [ ] Test: invalid type value logged as warning
-- [ ] Test: duplicate card names logged as warning
-
-**Files Modified**:
-- `tests/unit/test_hellcube_parser.py`
-
----
-
-## Phase 4: User Story 2 - Template Research & Download
-
-### T26: Implement template filename fuzzy matching
-**Priority**: P1
-**Estimate**: 45 minutes
-**Dependencies**: T17 (Card model)
-**User Story**: US2 (Template Research & Download)
-
-**Description**:
-Match Card type/color to template filenames with fuzzy matching.
-
-**Acceptance Criteria**:
-- [ ] File: `src/template_matcher.py`
-- [ ] Function `infer_template_file(card: Card) -> str`
-- [ ] Template naming convention: `{color}_{type}.png`
-  - Examples: `blue_creature.png`, `red_planeswalker.png`, `artifact.png`
-- [ ] Fuzzy matching for:
-  - Color: W→white, U→blue, B→black, R→red, G→green, C→colorless
-  - Multicolor → `multicolor_{type}.png`
-  - Land cards → `land.png` (no color)
-- [ ] Return default `generic_card.png` if no match
-
-**Files Created**:
-- `src/template_matcher.py`
-
----
-
-### T27: Implement template download and caching
-**Priority**: P1
-**Estimate**: 60 minutes
-**Dependencies**: T26, existing HTTP skills
-**User Story**: US2
-
-**Description**:
-Download MTG card templates from URLs using existing `.claude/skills/http/` skills.
-
-**Acceptance Criteria**:
-- [ ] File: `src/template_downloader.py`
-- [ ] Function `download_template(template_name: str, url: str, output_dir: str) -> str`
-- [ ] Use requests library (not HTTP skill for now - HTTP skill integration in T28)
-- [ ] Save to `output_dir/{template_name}`
-- [ ] Skip if file already exists (cache check)
-- [ ] Validate image dimensions (750×1050px expected)
-- [ ] Return absolute path to downloaded template
-
-**Files Created**:
-- `src/template_downloader.py`
-
----
-
-### T28: Integrate domain-agnostic HTTP skills for template fetching
-**Priority**: P2
-**Estimate**: 30 minutes
-**Dependencies**: T27
-**User Story**: US2
-
-**Description**:
-Replace requests calls with `.claude/skills/http/` skill invocations for consistency.
-
-**Acceptance Criteria**:
-- [ ] Refactor `template_downloader.py` to use HTTP skill if available
-- [ ] Fallback to requests library if skill not present
-- [ ] Test: template download works via skill invocation
-- [ ] Document skill usage in docstrings
-
-**Files Modified**:
-- `src/template_downloader.py`
-
----
-
-### T29: Write unit tests for template matcher
-**Priority**: P1
-**Estimate**: 30 minutes
-**Dependencies**: T26
-**User Story**: US2
-
-**Description**:
-Test template filename inference logic.
-
-**Acceptance Criteria**:
-- [ ] File: `tests/unit/test_template_matcher.py`
-- [ ] Test: blue creature → `blue_creature.png`
-- [ ] Test: red planeswalker → `red_planeswalker.png`
-- [ ] Test: multicolor creature → `multicolor_creature.png`
-- [ ] Test: colorless artifact → `colorless_artifact.png`
-- [ ] Test: land → `land.png`
-- [ ] Test: unknown type → `generic_card.png`
-
-**Files Created**:
-- `tests/unit/test_template_matcher.py`
-
----
-
-### T30: Write integration tests for template download
-**Priority**: P1
-**Estimate**: 30 minutes
-**Dependencies**: T28
-**User Story**: US2
-
-**Description**:
-Test template download workflow with mock HTTP responses.
-
-**Acceptance Criteria**:
-- [ ] File: `tests/integration/test_template_download.py`
-- [ ] Test: download template from URL (using test fixture URL)
-- [ ] Test: cache hit (second call skips download)
-- [ ] Test: invalid dimensions raise ValidationError
-- [ ] Test: network error handling
-
-**Files Created**:
-- `tests/integration/test_template_download.py`
-
----
-
-## Phase 5: User Story 3 - Proxy Card Generation (MCTS Integration)
-
-### T31: Implement TemplateRegions Pydantic model
-**Priority**: P0 (Unblocks VLM detector)
-**Estimate**: 25 minutes
-**Dependencies**: T6 (BoundingBox)
-**User Story**: US3
-
-**Description**:
-Create Pydantic model for VLM-detected template regions.
-
-**Acceptance Criteria**:
-- [ ] File: `../monorepo/agentic/algorithms/mcts/vlm_evaluators.py`
-- [ ] `TemplateRegions` Pydantic model:
-  - Fields: template_hash, name_box, mana_cost_box, type_line_box, text_boxes (list), pt_box (optional), flavor_box (optional), artwork_detected (bool)
-  - Validation: artwork_detected must be False (fail if artwork detected as text)
-- [ ] Include example in schema_extra
-
-**Files Created**:
-- `../monorepo/agentic/algorithms/mcts/vlm_evaluators.py`
-
----
-
-### T32: Implement VLMTemplateDetector
-**Priority**: P0
-**Estimate**: 75 minutes
-**Dependencies**: T31, T2 (Ollama)
-**User Story**: US3
-
-**Description**:
-VLM-based template region detection with SHA-256 caching.
-
-**Acceptance Criteria**:
-- [ ] Class `VLMTemplateDetector` in `vlm_evaluators.py`
-- [ ] Method `detect_regions(template_path: str) -> TemplateRegions`
-- [ ] SHA-256 hash computation for cache key
-- [ ] Cache check before VLM call
-- [ ] VLM prompt for template region detection (see contract)
-- [ ] Validation: `_validate_regions()` checks artwork not detected
-- [ ] Save cache to `.cache/template_regions.json`
-- [ ] Integration with instructor framework
-
-**Files Modified**:
-- `../monorepo/agentic/algorithms/mcts/vlm_evaluators.py`
-
----
-
-### T33: Implement LayoutQuality Pydantic model
-**Priority**: P0
-**Estimate**: 20 minutes
-**Dependencies**: T31
-**User Story**: US3
-
-**Description**:
-Create Pydantic model for VLM layout quality evaluation.
-
-**Acceptance Criteria**:
-- [ ] `LayoutQuality` Pydantic model in `vlm_evaluators.py`:
-  - Fields: readability_score, convention_compliance, aesthetic_balance, overall_score, no_overflow, issues (list), reasoning
-  - All scores: ge=0.0, le=1.0
-  - reasoning: max_length=200
-- [ ] Include example in schema_extra
-
-**Files Modified**:
-- `../monorepo/agentic/algorithms/mcts/vlm_evaluators.py`
-
----
-
-### T34: Implement VLMLayoutEvaluator
-**Priority**: P0
-**Estimate**: 90 minutes
-**Dependencies**: T33
-**User Story**: US3
-
-**Description**:
-VLM-based layout quality scoring (called every MCTS rollout).
-
-**Acceptance Criteria**:
-- [ ] Class `VLMLayoutEvaluator` in `vlm_evaluators.py`
-- [ ] Method `score_layout(layout_state: LayoutState, card_data: Dict) -> float`
-- [ ] Validate `layout_state.is_terminal()` before scoring
-- [ ] Render layout to PIL Image: `_render_layout(layout_state) -> PIL.Image`
-- [ ] VLM prompt for layout quality scoring (see contract)
-- [ ] Return `overall_score` from LayoutQuality
-- [ ] Performance: ~0.2s per call
-
-**Files Modified**:
-- `../monorepo/agentic/algorithms/mcts/vlm_evaluators.py`
-
----
-
-### T35: Implement action generation with strategic sampling
-**Priority**: P0
-**Estimate**: 60 minutes
-**Dependencies**: T14 (MCTS main loop)
-**User Story**: US3
-
-**Description**:
-Generate ~24 strategic actions per element (not 49,140 full enumeration).
-
-**Acceptance Criteria**:
-- [ ] Method `_generate_actions(state: LayoutState) -> List[LayoutAction]` in `mcts_layout.py`
-- [ ] Strategic sampling: 8 positions per region (4 corners + 4 midpoints)
-- [ ] Element-specific constraints:
-  - name: center alignment, fonts [14, 16]
-  - mana_cost: right alignment, font [14]
-  - type_line: center alignment, font [12]
-  - abilities: left alignment, fonts [10, 11, 12]
-  - p_t: right alignment, font [14]
-  - flavor: left alignment, font [10]
-- [ ] Result: ~24 actions per element
-
-**Files Modified**:
-- `../monorepo/agentic/algorithms/mcts/mcts_layout.py`
-
----
-
-### T36: Integrate VLMLayoutEvaluator into MCTS SIMULATE phase
-**Priority**: P0
-**Estimate**: 20 minutes
-**Dependencies**: T34, T13 (SIMULATE placeholder)
-**User Story**: US3
-
-**Description**:
-Replace placeholder VLM scoring with real VLMLayoutEvaluator.
-
-**Acceptance Criteria**:
-- [ ] Modify `_simulate()` in `mcts_layout.py` to accept `vlm_evaluator: VLMLayoutEvaluator`
-- [ ] Call `vlm_evaluator.score_layout(terminal_state, card_data)`
-- [ ] Remove placeholder random scoring
-- [ ] Update `execute()` to instantiate VLMLayoutEvaluator
-
-**Files Modified**:
-- `../monorepo/agentic/algorithms/mcts/mcts_layout.py`
-
----
-
-### T37: Write VLM evaluator unit tests (with mock VLM)
-**Priority**: P1
-**Estimate**: 60 minutes
-**Dependencies**: T34
-**User Story**: US3
-
-**Description**:
-Test VLM evaluators with mocked instructor calls.
-
-**Acceptance Criteria**:
-- [ ] File: `../monorepo/agentic/tests/unit/algorithms/mcts/test_vlm_evaluators.py`
-- [ ] Test: `test_template_detection_caching()` - verify SHA-256 cache hit
-- [ ] Test: `test_layout_scoring_non_terminal_fails()` - raises ValueError
-- [ ] Test: `test_vlm_detection_validation()` - artwork_detected=True fails
-- [ ] Use mocked instructor client (returns fixed TemplateRegions/LayoutQuality)
-
-**Files Created**:
-- `../monorepo/agentic/tests/unit/algorithms/mcts/test_vlm_evaluators.py`
-
----
-
-### T38: Write Phase 0 validation test (VLM accuracy on Nala card)
-**Priority**: P0 (Critical validation)
-**Estimate**: 45 minutes
-**Dependencies**: T32, T4 (nala_ground_truth.json)
-**User Story**: US3
-
-**Description**:
-Validate VLM detection within ±10px of manual ground truth measurements.
-
-**Acceptance Criteria**:
-- [ ] File: `tests/integration/test_vlm_detection.py`
-- [ ] Test: `test_vlm_detection_accuracy_nala_template()`
-- [ ] Load ground truth from `tests/fixtures/nala_ground_truth.json`
-- [ ] Detect regions on Nala template using VLMTemplateDetector
-- [ ] Compare all regions (name_box, mana_cost_box, type_line_box, text_box, pt_box)
-- [ ] Assert max error ≤ 10px for all regions
-- [ ] **FAIL if artwork_detected=True**
-
-**Files Created**:
-- `tests/integration/test_vlm_detection.py`
-
-**SUCCESS CRITERIA**: All regions within ±10px, artwork not detected
-
----
-
-### T39: Write Grid World MCTS validation test
-**Priority**: P0 (Algorithm correctness validation)
-**Estimate**: 90 minutes
-**Dependencies**: T14 (MCTS main loop)
-**User Story**: US3
-
-**Description**:
-Test MCTS on known-good problem (2D grid navigation with obstacles).
-
-**Acceptance Criteria**:
-- [ ] File: `tests/integration/test_mcts_grid_world.py`
-- [ ] Create Grid World problem: 5×5 grid, start=(0,0), goal=(4,4), 3 obstacles
-- [ ] Adapt MCTS to grid navigation: states=positions, actions=moves, reward=1.0 if goal reached else 0.0
-- [ ] Test: MCTS finds optimal path in <100 rollouts
-- [ ] Test: Final quality score ≥ 0.9
-- [ ] **PURPOSE**: Validate algorithm correctness before production use
-
-**Files Created**:
-- `tests/integration/test_mcts_grid_world.py`
-
-**SUCCESS CRITERIA**: Optimal path found in <100 rollouts, quality ≥0.9
-
----
-
-### T40: Write MCTS BDD tests for simple/complex cards
-**Priority**: P1
-**Estimate**: 60 minutes
-**Dependencies**: T36 (VLM-integrated MCTS)
-**User Story**: US3
-
-**Description**:
-End-to-end BDD scenarios for MCTS layout convergence.
-
-**Acceptance Criteria**:
-- [ ] File: `../monorepo/agentic/tests/components/algorithms/mcts_layout.feature`
-- [ ] Scenario: MCTS converges on simple card (1 ability)
-  - Given card with 1 ability, template regions, max_steps=1
-  - When execute MCTS
-  - Then quality ≥ 0.8, rollouts ≤ 100, converged=True
-- [ ] Scenario: MCTS handles complex card (3 abilities)
-  - Given card with 3 abilities, max_steps=3
-  - Then quality ≥ 0.8, rollouts ≤ 300
-- [ ] File: `../monorepo/agentic/tests/components/algorithms/steps/mcts_layout_steps.py`
-
-**Files Created**:
-- `../monorepo/agentic/tests/components/algorithms/mcts_layout.feature`
-- `../monorepo/agentic/tests/components/algorithms/steps/mcts_layout_steps.py`
-
----
-
-### T41: Implement PIL-based proxy compositor
-**Priority**: P1
-**Estimate**: 90 minutes
-**Dependencies**: T36 (MCTS returns LayoutState)
-**User Story**: US3
-
-**Description**:
-Render final card layout to PNG using PIL image composition.
-
-**Acceptance Criteria**:
-- [ ] File: `src/proxy_compositor.py`
-- [ ] Class `ProxyCompositor`
-- [ ] Method `render_card(card: Card, layout: LayoutState, template_path: str) -> PIL.Image`
-- [ ] Load template image
-- [ ] Composite text using PIL.ImageDraw
-- [ ] Handle font sizes, alignment, multi-line text wrapping
-- [ ] Render mana symbols as images (if available in cache)
-- [ ] Return 750×1050px RGB image
-
-**Files Created**:
-- `src/proxy_compositor.py`
-
----
-
-### T42: Implement batch processor with folder organization
-**Priority**: P1
-**Estimate**: 75 minutes
-**Dependencies**: T41
-**User Story**: US3
-
-**Description**:
-Process all cards from Excel, organize outputs by color/type.
-
-**Acceptance Criteria**:
-- [ ] File: `src/batch_organizer.py`
-- [ ] Function `organize_proxies(cards: List[Card], output_dir: str)`
-- [ ] Folder structure: `{output_dir}/{color}/{type}/`
-  - Example: `blue/creatures/`, `planeswalkers/red/`
-- [ ] Function `process_batch(excel_path: str, output_dir: str, max_steps=3)`
-- [ ] Parse Excel → for each card → detect template → MCTS → render → save PNG
-- [ ] Progress logging: "Card 42/200 (Batman Blue): 28 rollouts, quality 0.91, 5.6s"
-
-**Files Created**:
-- `src/batch_organizer.py`
-
----
-
-### T43: Implement CLI entry point
-**Priority**: P1
-**Estimate**: 30 minutes
-**Dependencies**: T42
-**User Story**: US3
-
-**Description**:
-Command-line interface for proxy generation.
-
-**Acceptance Criteria**:
-- [ ] File: `src/proxy_generator.py`
-- [ ] CLI arguments: `--input`, `--output`, `--max-steps`, `--limit`
-- [ ] Usage: `python -m src.proxy_generator "Hellcube AJ.xlsx" --output proxies/ --max-steps 3`
-- [ ] Optional `--limit N` for testing (process first N cards only)
-- [ ] Display summary: total cards, avg rollouts, avg quality, total time
-
-**Files Created**:
-- `src/proxy_generator.py`
-
----
-
-### T44: Write batch processing integration tests
-**Priority**: P1
-**Estimate**: 45 minutes
-**Dependencies**: T42
-**User Story**: US3
-
-**Description**:
-Test batch processing workflow with 10-card subset.
-
-**Acceptance Criteria**:
-- [ ] File: `tests/integration/test_batch_processing.py`
-- [ ] Test: process 10 cards from test Excel file
-- [ ] Validate output folder structure created
-- [ ] Validate all PNG files generated (750×1050px)
-- [ ] Check avg quality ≥ 0.8
-- [ ] Check total time ≤ 60s (6s per card average)
-
-**Files Created**:
-- `tests/integration/test_batch_processing.py`
-
----
-
-### T45: Write BDD tests for end-to-end proxy generation
-**Priority**: P1
-**Estimate**: 60 minutes
-**Dependencies**: T43
-**User Story**: US3
-
-**Description**:
-Full workflow BDD scenarios from Excel to PNG proxies.
-
-**Acceptance Criteria**:
-- [ ] File: `tests/integration/proxy_generation.feature`
-- [ ] Scenario: Generate proxy for simple card (vanilla creature)
-- [ ] Scenario: Generate proxy for complex card (3 abilities, legendary)
-- [ ] Scenario: Generate proxy for planeswalker (no P/T)
-- [ ] Scenario: Batch process 10 cards
-- [ ] File: `tests/integration/steps/proxy_generation_steps.py`
-
-**Files Created**:
-- `tests/integration/proxy_generation.feature`
-- `tests/integration/steps/proxy_generation_steps.py`
-
----
-
-## Phase 6: Polish & Cross-Cutting Concerns
-
-### T46: Generate comprehensive quickstart guide
-**Priority**: P2
-**Estimate**: 30 minutes
-**Dependencies**: T43
-**User Story**: Documentation
-
-**Description**:
-Update quickstart.md with complete setup and validation instructions.
-
-**Acceptance Criteria**:
-- [ ] Document: `specs/012-hellcube-proxy-generator/quickstart.md`
-- [ ] Section 1: Prerequisites (Python 3.9+, Ollama)
-- [ ] Section 2: Installation steps
-- [ ] Section 3: 8 validation tests (Phase 0-4)
-- [ ] Section 4: Usage examples
-- [ ] Section 5: Troubleshooting common issues
-
-**Files Modified**:
-- `specs/012-hellcube-proxy-generator/quickstart.md` (already exists, update with final details)
-
----
-
-### T47: Add inline documentation and docstrings
-**Priority**: P2
-**Estimate**: 60 minutes
-**Dependencies**: All implementation tasks
-**User Story**: Documentation
-
-**Description**:
-Ensure all modules have comprehensive docstrings.
-
-**Acceptance Criteria**:
-- [ ] All classes have class-level docstrings
-- [ ] All public methods have docstrings with Args/Returns/Raises
-- [ ] Complex algorithms (MCTS phases) have inline comments
-- [ ] Data structures have attribute descriptions
-- [ ] No TODOs or placeholder comments remain
-
-**Files Modified**:
-- All `src/*.py` and `../monorepo/agentic/algorithms/mcts/*.py` files
-
----
-
-### T48: Create API reference documentation
-**Priority**: P3 (Nice-to-have)
-**Estimate**: 45 minutes
-**Dependencies**: T47
-**User Story**: Documentation
-
-**Description**:
-Generate API documentation from docstrings using Sphinx or pdoc.
-
-**Acceptance Criteria**:
-- [ ] Install pdoc: `pip install pdoc`
-- [ ] Generate docs: `pdoc --html src/ ../monorepo/agentic/algorithms/mcts/`
-- [ ] Output to `docs/api/`
-- [ ] Include in repository (or .gitignore if too large)
-
-**Files Created**:
-- `docs/api/` directory (optional)
-
----
-
-### T49: Run performance validation on 200-card batch
-**Priority**: P1
-**Estimate**: 3 hours (mostly waiting)
-**Dependencies**: T43, T2 (Ollama)
-**User Story**: Validation
-
-**Description**:
-Full performance test with complete Hellcube dataset.
-
-**Acceptance Criteria**:
-- [ ] Run: `python -m src.proxy_generator "Hellcube AJ.xlsx" --output proxies/ --max-steps 3`
-- [ ] Record metrics:
-  - Total time: 1-3 hours (target)
-  - Avg rollouts per card: <100 (target)
-  - Avg quality score: ≥0.8 for 95%+ cards
-  - Convergence rate: 70%+
-- [ ] Validate all 200 PNGs generated (750×1050px)
-- [ ] Manually review 10 random cards for quality
-
-**Validation Checklist**:
-- [ ] Total time ≤ 3 hours
-- [ ] ≥95% of cards have quality ≥0.8
-- [ ] ≥70% of cards converged before max rollouts
-- [ ] No crashes or exceptions
-
----
-
-### T50: Add performance profiling and optimization
-**Priority**: P3 (Optional)
-**Estimate**: 90 minutes
-**Dependencies**: T49
-**User Story**: Performance
-
-**Description**:
-Profile batch processing to identify bottlenecks and optimize if needed.
-
-**Acceptance Criteria**:
-- [ ] Use cProfile to measure time spent in each component
-- [ ] Identify top 5 time consumers (likely: VLM calls, PIL rendering, MCTS tree operations)
-- [ ] Optional optimizations:
-  - Cache text width estimates
-  - Reuse PIL font objects
-  - Parallelize independent VLM calls (if feasible)
-- [ ] Document profiling results in `specs/012-hellcube-proxy-generator/performance.md`
-
-**Files Created**:
-- `specs/012-hellcube-proxy-generator/performance.md` (optional)
-
----
-
-### T51: Final integration test with all components
-**Priority**: P1
-**Estimate**: 30 minutes
-**Dependencies**: T49
-**User Story**: Validation
-
-**Description**:
-Run complete test suite to ensure all components integrate correctly.
-
-**Acceptance Criteria**:
-- [ ] Run: `pytest tests/ -v --cov=src --cov=../monorepo/agentic/algorithms/mcts`
-- [ ] Coverage: ≥90% for all modules
-- [ ] Run: `behave tests/integration/ tests/../monorepo/agentic/tests/components/algorithms/`
-- [ ] All BDD scenarios pass
-- [ ] No warnings or deprecations
-
-**Validation**:
-```bash
-pytest tests/ -v --cov=src --cov=../monorepo/agentic/algorithms/mcts --cov-report=html
-behave tests/integration/
-behave ../monorepo/agentic/tests/components/algorithms/
-```
-
----
-
-### T52: Update CLAUDE.md agent context
-**Priority**: P2
-**Estimate**: 10 minutes
-**Dependencies**: T51
-**User Story**: Documentation
-
-**Description**:
-Update project-level CLAUDE.md with completed feature technologies.
-
-**Acceptance Criteria**:
-- [ ] Run: `.specify/scripts/bash/update-agent-context.sh claude`
-- [ ] Verify `CLAUDE.md` includes:
-  - Python 3.9+ MCTS implementation
-  - Ollama VLM integration patterns
-  - Behave BDD testing for algorithms
-  - instructor framework usage
-- [ ] Commit updated CLAUDE.md
-
-**Files Modified**:
-- `CLAUDE.md`
-
----
-
-## Execution Strategy
-
-### Recommended Order
-
-1. **Phase 1 (T1-T5)**: Complete setup first (critical path)
-2. **Phase 2 (T6-T15)**: MCTS foundation (blocks US3)
-3. **Parallel Execution**:
-   - **Thread A**: Phase 3 (T16-T25) - Excel parser
-   - **Thread B**: Phase 4 (T26-T30) - Template download
-4. **Phase 5 (T31-T45)**: MCTS integration (requires Phase 2)
-5. **Phase 6 (T46-T52)**: Polish and validation
-
-### Critical Path
-
-```
-T1 → T2 → T3 → T6 → T7 → T8 → T9 → T10 → T11 → T12 → T13 → T14 → T31 → T32 → T33 → T34 → T35 → T36 → T38 → T39 → T41 → T42 → T43 → T49
-```
-
-**Critical Path Duration**: ~18 hours (excluding T49 wait time)
+### User Story Dependencies
+
+- **US1 (Parser)**: Can start after Phase 1 - NO dependencies on other stories
+- **US2 (Templates)**: Can start after Phase 1 - Parallel with US1 (different files)
+- **US3 (Proxy Gen)**: Depends on US1 (parser) AND US2 (templates) for Milestone 1, then depends on Milestone 2 (MCTS) for full implementation
+
+### Within Each Phase
+
+**Stream 1 (End-to-End)**:
+- T009-T016 (US1 Parser): Sequential within parser, but T009-T011 can run in parallel (different files)
+- T017-T022 (US2 Templates): T017-T018 parallel, then T019-T022 sequential
+- T023-T027 (Simple Compositor): Sequential (depends on parser + templates)
+
+**Stream 2 (MCTS)**:
+- T032-T034 (Pydantic models): All parallel (different model files)
+- T035-T041 (MCTS algorithm): Sequential (tree dependencies)
+- T042-T046 (VLM integration): T042-T043 parallel, then T044-T046 sequential
 
 ### Parallel Opportunities
 
-- **After T14** (MCTS foundation complete):
-  - US1 (T16-T25) can run independently
-  - US2 (T26-T30) can run independently
-- **Within Phase 5**:
-  - T31-T35 (VLM evaluators) can partially overlap with T16-T30
+**Phase 1 (Setup)**:
+- T006, T007, T008 can run in parallel
+
+**Stream 1 - Phase 2a (US1)**:
+- T009, T010, T011 can run in parallel (Card model, ManaCost parser, color inference - different files)
+
+**Stream 1 - Phase 2b (US2)**:
+- T017, T018 can run in parallel (TemplateMetadata model, fuzzy matcher - different files)
+
+**Stream 2 - Phase 3 (MCTS)**:
+- T032, T033, T034 can run in parallel (all Pydantic models - different classes)
+- T042, T043 can run in parallel (VLMTemplateDetector, VLMLayoutEvaluator - different files)
+
+**Phase 5 (Polish)**:
+- T072, T073, T074 can run in parallel (documentation, profiling - different files)
+
+**Cross-Stream Parallelization**:
+- **ALL of Stream 1 (T009-T031) can run in parallel with ALL of Stream 2 (T032-T055)** after Phase 1 completes
 
 ---
 
-## Risk Mitigation
+## Parallel Example: Stream 1 + Stream 2 Simultaneous
 
-### High-Risk Tasks
+```bash
+# After Phase 1 completes, launch BOTH streams:
 
-1. **T38: VLM accuracy validation** - May require prompt iteration if ±10px not met
-   - **Mitigation**: Budget extra time for prompt engineering
-2. **T39: Grid World validation** - Validates MCTS correctness before production
-   - **Mitigation**: Catch algorithm bugs early before integrating with VLM
-3. **T49: Performance validation** - 200-card batch may exceed 3-hour target
-   - **Mitigation**: T50 profiling can identify optimizations
+# Developer A (Stream 1 - End-to-End):
+Task T009: "Create Card data model in src/models/card.py"
+Task T010: "Create ManaCost parser in src/parsers/mana_cost_parser.py"
+Task T011: "Create color inference in src/parsers/color_inference.py"
+# ... continue through T031 (Milestone 1)
 
-### Blockers
+# Developer B (Stream 2 - MCTS):
+Task T032: "Create LayoutState Pydantic model"
+Task T033: "Create TemplateRegions Pydantic model"
+Task T034: "Create LayoutQuality Pydantic model"
+# ... continue through T055 (Milestone 2)
 
-- **T2 (Ollama setup)**: Blocks all VLM-dependent tasks (T32, T34, T38, T49)
-  - **Resolution**: Complete T2 early in Phase 1
-- **Phase 2 (MCTS)**: Blocks entire Phase 5 (US3)
-  - **Resolution**: Prioritize Phase 2, parallelize Phase 3/4
+# When BOTH milestones complete, converge:
+Task T056: "Integrate VLMTemplateDetector into template_cache.py"
+# ... continue through Milestone 3
+```
 
 ---
 
-## Success Criteria Summary
+## Implementation Strategy
 
-**Feature Complete** when:
-- [ ] All 52 tasks completed
-- [ ] All unit tests passing (>90% coverage)
-- [ ] All BDD scenarios passing
-- [ ] Phase 0 validation (T38): VLM accuracy ±10px ✓
-- [ ] Grid World validation (T39): Optimal path found ✓
-- [ ] Performance validation (T49): 200 cards in 1-3 hours, ≥95% quality ≥0.8 ✓
-- [ ] Final integration test (T51): All tests green ✓
+### Backwards-Working Methodology (NFR-005)
 
-**Ready for production** when all success criteria met.
+**Target**: Generate ONE proxy from ONE row, then work backwards to identify MCTS needs
+
+**Stream 1 Strategy (Work Backwards from Goal)**:
+1. **End Goal**: Print-ready proxy PNG (750×1050px, 300 DPI)
+2. **← Work backwards**: Composite card data onto template (simple hardcoded positions)
+3. **← Work backwards**: Load card template (blue creature legendary)
+4. **← Work backwards**: Parse one spreadsheet row into Card object
+5. **← Work backwards**: Load Hellcube AJ.xlsx, read single row
+
+**Milestone 1 Deliverable**: End-to-end smoke test passing with hardcoded positioning (NO MCTS)
+
+**Stream 2 Strategy (Forward Development in Parallel)**:
+1. MCTS data structures (LayoutState, MCTSNode, BoundingBox)
+2. VLM evaluators (template detection, layout quality scoring)
+3. MCTS algorithm (selection, expansion, simulation, backpropagation)
+4. Grid world validation (prove MCTS works on simple problem)
+5. Integration point: Ready to replace hardcoded positioning
+
+**Milestone 2 Deliverable**: MCTS validated on grid world, ready to drop into Stream 1
+
+**Convergence Strategy**:
+- When Stream 1 reaches "Composite with simple positioning"
+- When Stream 2 reaches "MCTS validated on grid world"
+- **Integration**: Replace `SimpleLayoutEngine` with `MCTSLayoutEngine` (T056-T059)
+
+### MVP First (Milestone 1 Only)
+
+1. Complete Phase 1: Setup (T001-T008)
+2. Complete Stream 1: End-to-End (T009-T031)
+3. **STOP and VALIDATE**: Milestone 1 - One proxy generated (human visual inspection)
+4. Demo single-card output (proves pipeline works before MCTS investment)
+
+**Time to MVP**: 8-12 hours
+
+### Full Feature (All Milestones)
+
+1. Complete Phase 1: Setup
+2. **Parallel Launch**: Stream 1 + Stream 2 simultaneously
+3. Validate Milestone 1: Single proxy with heuristics (8-12 hours)
+4. Validate Milestone 2: MCTS on grid world (10-15 hours)
+5. Converge: MCTS Integration (T056-T071) → Milestone 3
+6. Polish: Documentation and validation (T072-T078)
+
+**Total Time**: 30-40 hours
+
+### Parallel Team Strategy
+
+With two developers:
+
+1. **Both**: Complete Phase 1 together (2-3 hours)
+2. **Split streams**:
+   - **Developer A**: Stream 1 (US1 Parser + US2 Templates + Simple Compositor) → Milestone 1
+   - **Developer B**: Stream 2 (MCTS + VLM + Grid World) → Milestone 2
+3. **Both**: Converge at Phase 4 (MCTS Integration) → Milestone 3
+4. **Both**: Phase 5 (Polish and validation)
+
+---
+
+## Notes
+
+- **[P] markers**: Different files, no dependencies - can run in parallel
+- **[Story] labels**: Map tasks to user stories (US1=Parser, US2=Templates, US3=Proxy Generation)
+- **Backwards-working (NFR-005)**: Stream 1 works backwards from end goal (one proxy), Stream 2 develops MCTS in parallel
+- **Early validation**: Milestone 1 proves pipeline viability BEFORE investing 10-15 hours in MCTS
+- **Risk reduction**: If MCTS proves too complex, fall back to heuristic positioning (Milestone 1 is functional output)
+- **Independent milestones**: Each milestone has concrete deliverable and acceptance criteria
+- **No test tasks**: Tests not explicitly requested in spec.md, following template guidance
+- **Commit frequently**: After each task or logical group
+- **Stop at checkpoints**: Validate independently before proceeding

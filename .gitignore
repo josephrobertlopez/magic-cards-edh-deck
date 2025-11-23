@@ -81,6 +81,10 @@ decklists/*.txt
 .claude/downloads/
 .execution_manifests/
 
+# Feature 012: Hellcube proxy generator cache
+.cache/template_regions.json
+.cache/templates/
+
 # Downloaded card images (regenerable)
 images/
 .claude/cards/
