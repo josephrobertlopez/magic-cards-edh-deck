@@ -399,8 +399,9 @@ class MCTSProxyGenerator:
         color_code = self._infer_color_code(card)
         is_legendary = card.legendary or 'legendary' in card.type.lower()
         is_land = 'land' in card.type.lower()
+        has_pt = bool(card.power_toughness)  # Only creatures have P/T
 
-        print(f"  Color: {color_code}, Legendary: {is_legendary}")
+        print(f"  Color: {color_code}, Legendary: {is_legendary}, Has P/T: {has_pt}")
 
         # 2. Extract blank template from PSD
         print(f"  Extracting blank template...")
@@ -408,6 +409,7 @@ class MCTSProxyGenerator:
             color=color_code,
             legendary=is_legendary,
             land=is_land,
+            has_pt=has_pt,  # Only show P/T box for creatures
             size=(self.WIDTH, self.HEIGHT)
         )
 
@@ -451,17 +453,17 @@ class MCTSProxyGenerator:
         # MTG card alignment rules - override MCTS x positions for key elements
         # Standard card is 744x1039, visual measurements from actual card:
         # - Name bar: y ~35-75 (40px height)
-        # - Artwork: y ~93-530 (437px height)
-        # - Type bar (orange): y ~530-565 (35px height)
-        # - Text box: y ~570-935 (365px height)
+        # - Artwork: y ~85-540 (455px height)
+        # - Type bar: y ~540-575 (35px height)
+        # - Text box: y ~580-940 (360px height)
         NAME_X = 62  # Left-aligned with 10px padding
         NAME_Y = 53  # Vertical center of name bar
         MANA_RIGHT_EDGE = 690  # Right edge for mana symbols
         MANA_Y = 50  # Centered vertically in name bar
         TYPE_X = 62  # Left-aligned type line
-        TYPE_Y = 545  # Centered in type bar (530 + 15)
+        TYPE_Y = 555  # Centered in type bar
         TEXT_X = 71  # Text box left edge with padding
-        TEXT_START_Y = 590  # First ability line (below type bar)
+        TEXT_START_Y = 620  # First ability line - centered in text box
 
         # Handle both dict format and LayoutState format
         if hasattr(layout, 'placed_elements'):
