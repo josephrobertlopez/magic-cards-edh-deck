@@ -41,10 +41,11 @@ def download_image(url, output_path):
         print(f"  ❌ Failed to download image: {e}")
         return False
 
-def get_template_slot_positions(template_slide):
+def get_template_slot_positions(template_slide, max_slots=8):
     """
     Extract card slot positions from template.
     Returns list of slot dictionaries with left, top, width, height.
+    Limits to max_slots (default 8 for 2v6h layout).
     """
     card_slots = []
 
@@ -63,7 +64,8 @@ def get_template_slot_positions(template_slide):
     # Sort slots by position (top to bottom, left to right)
     card_slots.sort(key=lambda x: (x['top'], x['left']))
 
-    return card_slots
+    # Limit to max_slots (8 for proper 2v6h layout)
+    return card_slots[:max_slots]
 
 def place_card_in_slot(slide, card_path, slot_info):
     """
