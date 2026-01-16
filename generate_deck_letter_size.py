@@ -44,7 +44,7 @@ def download_image(url, output_path):
 def get_letter_size_card_positions():
     """
     Calculate 8 card positions for US Letter paper (8.5" × 11").
-    Returns 2×4 grid with cards in landscape orientation.
+    Returns 2×4 grid with cards in landscape orientation, centered on page.
     """
     # Letter paper dimensions
     page_width = 8.5
@@ -54,11 +54,17 @@ def get_letter_size_card_positions():
     card_width = 3.5  # MTG card height becomes width
     card_height = 2.5  # MTG card width becomes height
 
-    # Margins and spacing
-    margin_left = 0.75
-    margin_top = 0.5
-    gap_horizontal = 0.25
-    gap_vertical = 0.17
+    # Gap between cards
+    gap_horizontal = 0.2
+    gap_vertical = 0.2
+
+    # Calculate total dimensions needed
+    total_width = 2 * card_width + gap_horizontal
+    total_height = 4 * card_height + 3 * gap_vertical
+
+    # Center on page
+    margin_left = (page_width - total_width) / 2
+    margin_top = (page_height - total_height) / 2
 
     positions = []
 
@@ -156,11 +162,11 @@ def create_letter_size_deck(card_images, output_file):
         # Add new slide
         slide = prs.slides.add_slide(blank_layout)
 
-        # Black background
+        # White background
         background = slide.background
         fill = background.fill
         fill.solid()
-        fill.fore_color.rgb = RGBColor(0, 0, 0)
+        fill.fore_color.rgb = RGBColor(255, 255, 255)
 
         # Calculate card indices for this slide
         start_idx = slide_num * cards_per_page
