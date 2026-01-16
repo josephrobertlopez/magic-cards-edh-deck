@@ -85,3 +85,4 @@ decklists/*.txt
 images/
 .claude/cards/
 htmlcov/
+archive/
