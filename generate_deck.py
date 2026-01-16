@@ -51,8 +51,9 @@ def get_letter_size_card_positions():
     page_height = 11.0
 
     # Card dimensions in landscape (rotated 90°)
-    card_width = 3.5  # MTG card height becomes width
-    card_height = 2.5  # MTG card width becomes height
+    # Optimized for maximum size while fitting standard sleeves (2.55" × 3.55")
+    card_width = 3.55  # MTG card height becomes width
+    card_height = 2.55  # MTG card width becomes height
 
     # Gap between cards
     gap_horizontal = 0.2
