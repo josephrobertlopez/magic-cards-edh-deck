@@ -237,31 +237,55 @@ def main(card_list_file, output_dir="outputs"):
         if not card_data:
             continue
 
-        # Get image URL (handle double-faced cards)
+        # Handle double-faced cards (download BOTH sides)
         if 'card_faces' in card_data:
-            # Double-faced card: use front face
-            image_url = card_data['card_faces'][0].get('image_uris', {}).get('normal')
+            # Double-faced card: download both front and back
+            for face_idx, face in enumerate(card_data['card_faces']):
+                face_name = face.get('name', card_name)
+                face_type = "Front" if face_idx == 0 else "Back"
+                image_url = face.get('image_uris', {}).get('normal')
+
+                if not image_url:
+                    print(f"  ⚠️  {face_type}: No image available")
+                    continue
+
+                # Use face name for filename
+                safe_name = face_name.replace(' ', '_').replace('/', '_').replace("'", "").replace(',', '')
+                image_path = images_dir / f"{safe_name}.jpg"
+
+                if image_path.exists():
+                    print(f"  ✓ {face_type}: {face_name} (cached)")
+                    successful_images.append(image_path)
+                else:
+                    if download_image(image_url, image_path):
+                        print(f"  ✓ {face_type}: {face_name}")
+                        successful_images.append(image_path)
+
+                # Rate limiting between faces
+                time.sleep(0.1)
+
         elif 'image_uris' in card_data:
             # Single-faced card
             image_url = card_data['image_uris'].get('normal')
-        else:
-            image_url = None
 
-        if not image_url:
+            if not image_url:
+                print(f"  ⚠️  No image available")
+                continue
+
+            # Download image
+            safe_name = card_name.replace(' ', '_').replace('/', '_').replace("'", "")
+            image_path = images_dir / f"{safe_name}.jpg"
+
+            if image_path.exists():
+                print(f"  ✓ Already downloaded")
+                successful_images.append(image_path)
+            else:
+                if download_image(image_url, image_path):
+                    print(f"  ✓ Downloaded")
+                    successful_images.append(image_path)
+        else:
             print(f"  ⚠️  No image available")
             continue
-
-        # Download image
-        safe_name = card_name.replace(' ', '_').replace('/', '_').replace("'", "")
-        image_path = images_dir / f"{safe_name}.jpg"
-
-        if image_path.exists():
-            print(f"  ✓ Already downloaded")
-            successful_images.append(image_path)
-        else:
-            if download_image(image_url, image_path):
-                print(f"  ✓ Downloaded")
-                successful_images.append(image_path)
 
         # Rate limiting
         time.sleep(0.1)
