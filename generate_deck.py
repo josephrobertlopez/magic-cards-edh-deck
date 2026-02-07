@@ -237,8 +237,16 @@ def main(card_list_file, output_dir="outputs"):
         if not card_data:
             continue
 
-        # Get image URL
-        image_url = card_data.get('image_uris', {}).get('normal')
+        # Get image URL (handle double-faced cards)
+        if 'card_faces' in card_data:
+            # Double-faced card: use front face
+            image_url = card_data['card_faces'][0].get('image_uris', {}).get('normal')
+        elif 'image_uris' in card_data:
+            # Single-faced card
+            image_url = card_data['image_uris'].get('normal')
+        else:
+            image_url = None
+
         if not image_url:
             print(f"  ⚠️  No image available")
             continue
