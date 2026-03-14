@@ -8,7 +8,8 @@ strategic positions (corners + midpoints) to reduce action space from
 
 from typing import List, Dict
 import sys
-sys.path.append('/home/joey/Documents/GitHub/magic-cards-edh-deck/src')
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from src.models.card_element import CardElement
 from src.models.bounding_box import BoundingBox

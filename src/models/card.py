@@ -36,6 +36,7 @@ class Card:
 
     # Custom artwork
     artwork_url: Optional[str] = None  # From "pic" field (FR-009: fail card if invalid)
+    pic_url: Optional[str] = None  # Alias for artwork_url (Scryfall image URI)
 
     def __post_init__(self):
         """Validate required fields after initialization."""
