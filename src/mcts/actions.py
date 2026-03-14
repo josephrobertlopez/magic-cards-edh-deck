@@ -97,7 +97,7 @@ def generate_strategic_actions(
 
     # Get allowed alignment(s) for this element type
     alignment_constraints = {
-        "name": ["center"],
+        "name": ["left"],
         "mana_cost": ["right"],
         "type_line": ["left", "center"],
         "ability_1": ["left"],

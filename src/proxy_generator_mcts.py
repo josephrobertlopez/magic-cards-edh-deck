@@ -430,7 +430,7 @@ class MCTSProxyGenerator:
         if self.use_mcts:
             print(f"  Running MCTS layout optimization ({self.mcts_rollouts} rollouts)...")
             layout = self.layout_engine.optimize_layout(card, regions, self.mcts_rollouts)
-            print(f"  MCTS layout returned {len(layout)} elements")
+            print(f"  MCTS layout returned {len(layout.placed_elements)} elements")
             # Render using MCTS layout
             self._render_mcts_layout(template, layout)
             quality_score = 0.9
@@ -447,30 +447,18 @@ class MCTSProxyGenerator:
         return output_path, quality_score
 
     def _render_mcts_layout(self, img: Image.Image, layout):
-        """Render text using MCTS-optimized layout with proper MTG alignment."""
+        """Render text using MCTS-optimized positions.
+
+        Uses the positions found by MCTS search directly. The MCTS engine
+        already uses MTG-canonical defaults in its rollouts, so the positions
+        are informed by real card anatomy.
+        """
         draw = ImageDraw.Draw(img)
 
-        # MTG card alignment rules - override MCTS x positions for key elements
-        # Standard card is 744x1039, visual measurements from actual card:
-        # - Name bar: y ~35-75 (40px height)
-        # - Artwork: y ~85-540 (455px height)
-        # - Type bar: y ~540-575 (35px height)
-        # - Text box: y ~580-940 (360px height)
-        NAME_X = 62  # Left-aligned with 10px padding
-        NAME_Y = 53  # Vertical center of name bar
-        MANA_RIGHT_EDGE = 690  # Right edge for mana symbols
-        MANA_Y = 50  # Centered vertically in name bar
-        TYPE_X = 62  # Left-aligned type line
-        TYPE_Y = 555  # Centered in type bar
-        TEXT_X = 71  # Text box left edge with padding
-        TEXT_START_Y = 620  # First ability line - centered in text box
-
-        # Handle both dict format and LayoutState format
+        # Extract placed elements from layout
         if hasattr(layout, 'placed_elements'):
-            # LayoutState object
-            elements = layout.placed_elements
+            elements = list(layout.placed_elements.values())
         elif isinstance(layout, dict):
-            # Dict of PlacedElements
             elements = list(layout.values())
         else:
             print(f"  Warning: Unknown layout format: {type(layout)}")
@@ -485,7 +473,7 @@ class MCTSProxyGenerator:
             else:
                 continue
 
-            # Get text content
+            # Get text content and type
             if hasattr(placed, 'element') and hasattr(placed.element, 'text_content'):
                 text = placed.element.text_content
                 elem_type = placed.element.type
@@ -496,49 +484,55 @@ class MCTSProxyGenerator:
                 continue
 
             font_size = getattr(placed, 'font_size', 14)
+            alignment = getattr(placed, 'alignment', 'left')
 
-            # Apply MTG alignment rules based on element type
-            if elem_type == 'name':
-                # Left-align card name
-                x = NAME_X
-                y = NAME_Y
-            elif elem_type == 'type_line':
-                # Left-align type line ON the orange type bar
-                x = TYPE_X
-                y = TYPE_Y
-            elif elem_type.startswith('ability_'):
-                # Abilities go in text box area
-                x = TEXT_X
-                # Extract ability number and calculate Y position
-                try:
-                    ability_num = int(elem_type.split('_')[1])
-                    y = TEXT_START_Y + (ability_num - 1) * 50  # 50px spacing
-                except (IndexError, ValueError):
-                    pass  # Use MCTS position
-            elif elem_type == 'flavor':
-                # Flavor text at bottom of text box
-                x = TEXT_X
-                y = TEXT_START_Y + 120  # Below abilities
+            # Skip artwork element (rendered separately)
+            if elem_type == 'artwork':
+                continue
 
-            # Special handling for mana cost: render symbols instead of text
+            # Mana cost: render colored symbols instead of text
             if elem_type == 'mana_cost' and text:
                 try:
                     mana_img = self.mana_renderer.render_mana_cost(text, size=28)
-                    # Right-align mana symbols
-                    x = MANA_RIGHT_EDGE - mana_img.width
-                    y = MANA_Y  # Centered in name box
-                    # Paste with alpha channel for transparency
+                    # Right-align: shift x left by symbol width
+                    if alignment == 'right':
+                        x = x + placed.bbox.width - mana_img.width
                     img.paste(mana_img, (x, y), mana_img)
                     print(f"    Rendered mana symbols: {text} at ({x}, {y})")
+                    continue
                 except Exception as e:
-                    # Fallback to text if symbol rendering fails
                     print(f"    Warning: mana symbol render failed ({e}), using text")
-                    font = self._get_font_for_element(elem_type, font_size)
-                    draw.text((x, y), text, font=font, fill="black")
+
+            # Render text with word wrapping
+            font = self._get_font_for_element(elem_type, font_size)
+            max_width = placed.bbox.width if hasattr(placed, 'bbox') else 600
+
+            if elem_type.startswith('ability_') or elem_type == 'flavor':
+                # Multi-line: word-wrap within bbox width
+                wrapped = self._wrap_text(text, max_width, font)
+                fill = "#444444" if elem_type == 'flavor' else "black"
+                line_y = y
+                for line in wrapped:
+                    draw.text((x, line_y), line, font=font, fill=fill)
+                    line_y += int(font_size * 1.35)
+            elif elem_type == 'p_t':
+                # Power/toughness: centered in its box
+                cx = x + placed.bbox.width // 2
+                cy = y + placed.bbox.height // 2
+                draw.text((cx, cy), text, font=font, fill="black", anchor="mm")
             else:
-                font = self._get_font_for_element(elem_type, font_size)
-                draw.text((x, y), text, font=font, fill="black")
-                print(f"    Rendered: {elem_type} at ({x}, {y})")
+                # Name, type_line, author: single line
+                anchor = "lm" if alignment == 'left' else "rm" if alignment == 'right' else "mm"
+                ty = y + placed.bbox.height // 2
+                if alignment == 'right':
+                    tx = x + placed.bbox.width
+                elif alignment == 'center':
+                    tx = x + placed.bbox.width // 2
+                else:
+                    tx = x
+                draw.text((tx, ty), text, font=font, fill="black", anchor=anchor)
+
+            print(f"    Rendered: {elem_type} at ({x}, {y}) align={alignment}")
 
     def _get_font_for_element(self, element_type: str, size: int):
         """Get appropriate font for element type."""
