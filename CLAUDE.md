@@ -5,9 +5,11 @@ Generates print-ready PDF proxies from MTG card lists. Fetches card images from 
 
 ## Key Commands
 - `python3 generate_deck.py <decklist_file>` - Generate proxies from a decklist
+- `python3 grid_layout.py [OPTIONS] <images>` - Configurable grid layout for any images
 
 ## Project Structure
-- `generate_deck.py` - Main proxy generation script
+- `generate_deck.py` - Main proxy generation script (decklist → Scryfall → proxies)
+- `grid_layout.py` - Configurable grid layout (any images → print-ready PPTX/PDF)
 - `decklists/` - Card lists (one card name per line)
 - `outputs/` - Generated PPTX and PDF files
 - `images/` - Cached card images from Scryfall
@@ -20,6 +22,7 @@ Generates print-ready PDF proxies from MTG card lists. Fetches card images from 
 - `/validate-deck <file>` - Check EDH format legality and best practices
 - `/build-deck <concept>` - Build a new EDH deck from a commander or theme
 - `/scrape-meta <commander>` - Scrape EDHREC for a meta decklist given a commander name
+- `/proxy-grid <images>` - Generate proxy sheets with configurable grids (2x4, 3x3, full-art, etc.)
 
 ## Scryfall API
 - Card lookup: `https://api.scryfall.com/cards/named?fuzzy=<name>`
