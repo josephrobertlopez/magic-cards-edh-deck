@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Quick wrapper for Marp CLI conversions
+# Usage: marp-convert slides.md [pptx|pdf|html]
+
+set -euo pipefail
+
+INPUT="${1:?Usage: marp-convert <input.md> [pptx|pdf|html]}"
+FORMAT="${2:-pptx}"
+OUTPUT="${INPUT%.*}.${FORMAT}"
+
+if ! command -v marp &>/dev/null; then
+    echo "Error: Marp CLI not installed. Run: npm install -g @marp-team/marp-cli"
+    exit 1
+fi
+
+case "$FORMAT" in
+    pptx) FLAG="--pptx" ;;
+    pdf)  FLAG="--pdf" ;;
+    html) FLAG="--html" ;;
+    *)    echo "Error: Unsupported format '$FORMAT'. Use: pptx, pdf, html"; exit 1 ;;
+esac
+
+echo "Converting: $INPUT → $OUTPUT"
+marp "$FLAG" "$INPUT" -o "$OUTPUT" --allow-local-files
+echo "Done: $OUTPUT"
