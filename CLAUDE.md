@@ -19,6 +19,7 @@ Generates print-ready PDF proxies from MTG card lists. Fetches card images from 
 - `/find-cards <query>` - Search for MTG cards via Scryfall (e.g., "green ramp under 3 mana")
 - `/validate-deck <file>` - Check EDH format legality and best practices
 - `/build-deck <concept>` - Build a new EDH deck from a commander or theme
+- `/scrape-meta <commander>` - Scrape EDHREC for a meta decklist given a commander name
 
 ## Scryfall API
 - Card lookup: `https://api.scryfall.com/cards/named?fuzzy=<name>`
