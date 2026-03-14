@@ -23,6 +23,9 @@ Generates print-ready PDF proxies from MTG card lists. Fetches card images from 
 - `/build-deck <concept>` - Build a new EDH deck from a commander or theme
 - `/scrape-meta <commander>` - Scrape EDHREC for a meta decklist given a commander name
 - `/proxy-grid <images>` - Generate proxy sheets with configurable grids (2x4, 3x3, full-art, etc.)
+- `/fetch-decklist <url|query>` - Fetch decklists from any site via WebSearch (bypasses 403s)
+- `/commander-profile <name>` - Deep-dive: archetypes, play patterns, route diffs, combo maps
+- `/deck-recommendations <list>` - Meta-informed upgrade recommendations with tiered swap lists
 
 ## Scryfall API
 - Card lookup: `https://api.scryfall.com/cards/named?fuzzy=<name>`
