@@ -9,23 +9,56 @@ import requests
 from pathlib import Path
 import subprocess
 import math
+import json
 from pptx import Presentation
 from pptx.util import Inches
 from pptx.dml.color import RGBColor
 from PIL import Image
 
+METADATA_CACHE_PATH = "images/card_metadata.json"
+
+def safe_filename(name):
+    """Sanitize card name for use as filename."""
+    return name.replace(' ', '_').replace('/', '_').replace("'", "").replace(',', '')
+
+def load_metadata_cache():
+    """Load card metadata cache from JSON file."""
+    if Path(METADATA_CACHE_PATH).exists():
+        with open(METADATA_CACHE_PATH, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_metadata_cache(cache):
+    """Save card metadata cache to JSON file."""
+    Path("images").mkdir(exist_ok=True)
+    with open(METADATA_CACHE_PATH, 'w') as f:
+        json.dump(cache, f, indent=2)
+
 def fetch_card_from_scryfall(card_name):
-    """Fetch card data from Scryfall API."""
-    url = f"https://api.scryfall.com/cards/named"
+    """Fetch card data from Scryfall API with exponential backoff."""
+    url = "https://api.scryfall.com/cards/named"
     params = {"fuzzy": card_name}
 
-    try:
-        response = requests.get(url, params=params, timeout=10)
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        print(f"  ❌ Failed to fetch {card_name}: {e}")
-        return None
+    backoff_delay = 2.0
+    for attempt in range(5):
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            if response.status_code == 429:
+                if attempt < 4:
+                    print(f"    ⏳ Rate limited, waiting {backoff_delay}s...")
+                    time.sleep(backoff_delay)
+                    backoff_delay = min(backoff_delay * 2, 30)
+                    continue
+                else:
+                    print(f"  ❌ Failed to fetch {card_name}: Rate limited after 5 retries")
+                    return None
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            if "429" not in str(e):
+                print(f"  ❌ Failed to fetch {card_name}: {e}")
+            return None
+    return None
 
 def download_image(url, output_path):
     """Download image from URL."""
@@ -225,6 +258,9 @@ def main(card_list_file, output_dir="outputs"):
     output_path = Path(output_dir)
     output_path.mkdir(exist_ok=True)
 
+    # Load metadata cache
+    metadata_cache = load_metadata_cache()
+
     # Fetch and download cards
     print("🔍 Fetching card data from Scryfall...")
     successful_images = []
@@ -232,10 +268,60 @@ def main(card_list_file, output_dir="outputs"):
     for i, card_name in enumerate(card_names, 1):
         print(f"[{i}/{len(card_names)}] {card_name}")
 
-        # Fetch card data
+        # Check if metadata exists and all images are cached
+        if card_name in metadata_cache:
+            card_metadata = metadata_cache[card_name]
+            faces = card_metadata.get('faces', [])
+
+            # Check if all face images exist on disk
+            all_cached = True
+            for face_name in faces:
+                safe_name = safe_filename(face_name)
+                image_path = images_dir / f"{safe_name}.jpg"
+                if not image_path.exists():
+                    all_cached = False
+                    break
+
+            # If all images cached, add to successful_images and skip API call
+            if all_cached:
+                for face_name in faces:
+                    safe_name = safe_filename(face_name)
+                    image_path = images_dir / f"{safe_name}.jpg"
+                    print(f"  ✓ {face_name} (cached)")
+                    successful_images.append(image_path)
+                continue  # Skip API call and delay
+
+        # Fallback: image exists on disk but no metadata (e.g. downloaded externally)
+        fallback_name = safe_filename(card_name)
+        fallback_path = images_dir / f"{fallback_name}.jpg"
+        if fallback_path.exists():
+            metadata_cache[card_name] = {
+                'type': 'single',
+                'faces': [card_name],
+                'fetched': time.strftime("%Y-%m-%d")
+            }
+            save_metadata_cache(metadata_cache)
+            print(f"  ✓ {card_name} (cached)")
+            successful_images.append(fallback_path)
+            continue
+
+        # Fetch card data from Scryfall (needed if metadata AND image both missing)
         card_data = fetch_card_from_scryfall(card_name)
         if not card_data:
             continue
+
+        # Store metadata in cache
+        if 'card_faces' in card_data:
+            faces_list = [face.get('name', card_name) for face in card_data['card_faces']]
+        else:
+            faces_list = [card_name]
+
+        metadata_cache[card_name] = {
+            'type': 'double_faced' if 'card_faces' in card_data else 'single',
+            'faces': faces_list,
+            'fetched': time.strftime("%Y-%m-%d")
+        }
+        save_metadata_cache(metadata_cache)
 
         # Handle double-faced cards (download BOTH sides)
         if 'card_faces' in card_data:
@@ -250,7 +336,7 @@ def main(card_list_file, output_dir="outputs"):
                     continue
 
                 # Use face name for filename
-                safe_name = face_name.replace(' ', '_').replace('/', '_').replace("'", "").replace(',', '')
+                safe_name = safe_filename(face_name)
                 image_path = images_dir / f"{safe_name}.jpg"
 
                 if image_path.exists():
@@ -273,7 +359,7 @@ def main(card_list_file, output_dir="outputs"):
                 continue
 
             # Download image
-            safe_name = card_name.replace(' ', '_').replace('/', '_').replace("'", "")
+            safe_name = safe_filename(card_name)
             image_path = images_dir / f"{safe_name}.jpg"
 
             if image_path.exists():
@@ -287,8 +373,8 @@ def main(card_list_file, output_dir="outputs"):
             print(f"  ⚠️  No image available")
             continue
 
-        # Rate limiting
-        time.sleep(0.1)
+        # Rate limiting (0.15s for API calls, 0s for cached cards already skipped)
+        time.sleep(0.15)
 
     print()
     print(f"✓ Successfully downloaded {len(successful_images)}/{len(card_names)} cards")

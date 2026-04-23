@@ -203,6 +203,40 @@ def create_grid(
                 )
                 placed += 1
 
+                # Add crop marks at card corners (0.1" lines)
+                mark_len = Inches(0.1)
+                mark_width = Inches(0.004)  # ~0.5pt
+                mark_color = RGBColor(0, 0, 0)
+                corners = [
+                    (x, y),                     # top-left
+                    (x + w, y),                 # top-right
+                    (x, y + h),                 # bottom-left
+                    (x + w, y + h),             # bottom-right
+                ]
+                for cx, cy in corners:
+                    # Horizontal mark
+                    from pptx.util import Emu
+                    from pptx.enum.shapes import MSO_SHAPE
+                    hline = slide.shapes.add_shape(
+                        MSO_SHAPE.RECTANGLE,
+                        Inches(cx - 0.05 if cx == x else cx),
+                        Inches(cy - 0.002),
+                        mark_len, mark_width,
+                    )
+                    hline.fill.solid()
+                    hline.fill.fore_color.rgb = mark_color
+                    hline.line.fill.background()
+                    # Vertical mark
+                    vline = slide.shapes.add_shape(
+                        MSO_SHAPE.RECTANGLE,
+                        Inches(cx - 0.002),
+                        Inches(cy - 0.05 if cy == y else cy),
+                        mark_width, mark_len,
+                    )
+                    vline.fill.solid()
+                    vline.fill.fore_color.rgb = mark_color
+                    vline.line.fill.background()
+
             except Exception as e:
                 print(f"  Warning: failed to place {img_path.name}: {e}")
 

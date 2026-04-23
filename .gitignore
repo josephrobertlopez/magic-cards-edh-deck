@@ -42,6 +42,26 @@ Thumbs.db
 # Generated outputs (regenerable from decklists)
 outputs/
 images/
+card_images/
+card_images_both_sides/
+card_images_double/
+
+# Generated asset caches (regenerable from Scryfall API + spreadsheet)
+.cache/artwork/
+.cache/templates/
+.cache/templates_blanked/
+.cache/reference_cards/
+
+# Generated metadata (derived from source)
+card_image_mapping.json
+card_image_mapping_full.json
+
+# Session/dev notes (not load-bearing to repo)
+.dev-changes/
+20260315_dev_*.md
+AGENTS.md
+archive/
+.claude/skills/
 
 # Temporary files
 *.tmp
@@ -50,3 +70,4 @@ images/
 # Environment
 .env
 .env.*
+.gitnexus

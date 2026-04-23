@@ -1,0 +1,114 @@
+# Lands (36)
+Command Tower
+Sacred Foundry
+Clifftop Retreat
+Inspiring Vantage
+Sundown Pass
+Needle Spires
+Battlefield Forge
+Rugged Prairie
+Wind-Scarred Crag
+Boros Garrison
+Temple of Triumph
+Needleverge Pathway
+Spectator Seating
+Ancient Tomb
+Myriad Landscape
+Eiganjo, Seat of the Empire
+Sokenzan, Crucible of Defiance
+Slayers' Stronghold
+Sunhome, Fortress of the Legion
+Mistveil Plains
+Plains
+Plains
+Plains
+Plains
+Plains
+Plains
+Plains
+Plains
+Plains
+Mountain
+Mountain
+Mountain
+Mountain
+Mountain
+Mountain
+Mountain
+
+# Ramp (11)
+Sol Ring
+Arcane Signet
+Boros Signet
+Talisman of Conviction
+Mind Stone
+Worn Powerstone
+Commander's Sphere
+Burnished Hart
+Wayfarer's Bauble
+Knight of the White Orchid
+Smothering Tithe
+
+# Card Draw (10)
+Skullclamp
+Welcoming Vampire
+Dawn of Hope
+Well of Lost Dreams
+Staff of the Storyteller
+Sword of Fire and Ice
+Sunforger
+Reforge the Soul
+Faithless Looting
+Cathartic Reunion
+
+# Life Gain Payoffs (14)
+Serra Ascendant
+Ajani's Pridemate
+Heliod, Sun-Crowned
+Archangel of Thune
+Aetherflux Reservoir
+Crested Sunmare
+Righteous Valkyrie
+Resplendent Angel
+Angel of Vitality
+Angelic Accord
+Voice of the Blessed
+Speaker of the Heavens
+Boon Reflection
+
+# Life Gain Enablers (9)
+Basilisk Collar
+Shadowspear
+Loxodon Warhammer
+Alhammarret's Archive
+Beacon of Immortality
+Pristine Talisman
+Aggravated Assault
+Test of Endurance
+Sunbond
+
+# Combat Threats (8)
+Baneslayer Angel
+Lyra Dawnbringer
+Gisela, Blade of Goldnight
+Aurelia, the Warleader
+Odric, Lunarch Marshal
+Danitha Capashen, Paragon
+Sunscorch Regent
+Boros Reckoner
+
+# Removal (10)
+Swords to Plowshares
+Path to Exile
+Generous Gift
+Return to Dust
+Wear // Tear
+Boros Charm
+Teferi's Protection
+Austere Command
+Wrath of God
+Blasphemous Act
+
+# Utility (2)
+Swiftfoot Boots
+Batterskull

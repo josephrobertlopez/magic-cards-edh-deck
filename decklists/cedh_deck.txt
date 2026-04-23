@@ -1,0 +1,101 @@
+Lucas, the Sharpshooter
+Will the Wise
+Lurrus of the Dream-Den
+Cathar Commando
+Dark Confidant
+Dauthi Voidwalker
+Dragon's Rage Channeler
+Drannith Magistrate
+Esper Sentinel
+Grand Abolisher
+Kroxa, Titan of Death's Hunger
+Lotho, Corrupt Shirriff
+Loyal Apprentice
+Malevolent Hermit
+Orcish Bowmasters
+Phantasmal Image
+Ragavan, Nimble Pilferer
+Serra Ascendant
+Snapcaster Mage
+Thassa's Oracle
+Demonic Tutor
+Faithless Looting
+Gamble
+Gitaxian Probe
+Imperial Seal
+Jeska's Will
+Mnemonic Betrayal
+Peer into the Abyss
+Ponder
+Praetor's Grasp
+Preordain
+Reanimate
+Sevinne's Reclamation
+Vandalblast
+Wheel of Fortune
+Ad Nauseam
+Brain Freeze
+Brainstorm
+Cabal Ritual
+Chain of Vapor
+Culling the Weak
+Cyclonic Rift
+Dark Ritual
+Deflecting Swat
+Demonic Consultation
+Dovin's Veto
+Enlightened Tutor
+Fierce Guardianship
+Flusterstorm
+Force of Negation
+Force of Will
+Into the Flood Maw
+Intuition
+Lim-Dul's Vault
+Mana Drain
+Mental Misstep
+Muddle the Mixture
+Mystical Tutor
+Pact of Negation
+Porom's Silence Magic
+Tainted Pact
+Vampiric Tutor
+Chrome Mox
+Lion's Eye Diamond
+Lotus Petal
+Mishra's Bauble
+Mox Amber
+Mox Diamond
+Urza's Bauble
+Mystic Remora
+Underworld Breach
+Arid Mesa
+Badlands
+Bloodstained Mire
+Cephalid Coliseum
+City of Brass
+Command Tower
+Flooded Strand
+Forbidden Orchard
+Gemstone Caverns
+Mana Confluence
+Marsh Flats
+Misty Rainforest
+Plateau
+Polluted Delta
+Raugrin Triome
+Savai Triome
+Scalding Tarn
+Scrubland
+Snow-Covered Island
+Snow-Covered Mountain
+Snow-Covered Plains
+Snow-Covered Swamp
+Tundra
+Underground Sea
+Urborg, Tomb of Yawgmoth
+Urza's Saga
+Verdant Catacombs
+Volcanic Island
+Windswept Heath
+Wooded Foothills
