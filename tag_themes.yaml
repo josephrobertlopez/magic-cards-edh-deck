@@ -1,0 +1,187 @@
+# Thematic EDH Deck Configurations using Scryfall Tagger Tags
+# Each theme defines tag weights, colors, and deck-building parameters
+# Weights are multipliers for tag relevance scoring (1.0 = baseline)
+
+themes:
+  furry_gay_male:
+    name: "Furry Gay Male - UWU Deck"
+    description: "Celebrating LGBTQ+ and furry representation in Magic artwork"
+    colors: ["R", "W"]  # Boros - example default colors
+    tag_weights:
+      # Representation (priority tier 1)
+      achillean: 3.0
+      trans_male: 3.0
+      romantic_couple: 2.5
+      person_of_color: 2.0
+      # Furry/Animal (priority tier 2)
+      bear: 1.5
+      cat: 1.5
+      wolf: 1.5
+      anthropomorphic: 1.0
+      animal: 0.5
+      # Aesthetic (priority tier 3)
+      cute: 1.2
+      smile: 1.0
+      wholesome: 1.0
+      soft: 0.8
+      uwu: 1.2
+      # Art style
+      visual_pun: 0.6
+      easter_egg: 0.6
+      expressive: 0.6
+    min_relevance_threshold: 0.5
+    # Require minimum representation cards
+    min_lgbtq_cards: 2
+    min_furry_cards: 10
+
+  queer_representation:
+    name: "Queer Representation Showcase"
+    description: "Deck focused on LGBTQ+ themed cards from across Magic"
+    colors: ["U", "B", "R"]  # Grixis - flexible for queerness
+    tag_weights:
+      achillean: 3.5
+      trans_male: 3.5
+      sapphic: 3.0
+      trans_female: 3.0
+      romantic_couple: 2.5
+      person_of_color: 2.0
+      # Support tags
+      angel: 1.0
+      demon: 1.0
+      elf: 0.8
+      human: 0.5
+    min_relevance_threshold: 0.4
+    min_lgbtq_cards: 5
+    # Softer on furry tags
+    min_furry_cards: 0
+
+  woodland_creatures:
+    name: "Woodland Creatures & Nature"
+    description: "Green/White deck celebrating forest animals and natural themes"
+    colors: ["G", "W"]
+    tag_weights:
+      animal: 2.5
+      bear: 2.0
+      cat: 2.0
+      wolf: 2.0
+      bird: 1.5
+      forest: 1.5
+      nature: 1.5
+      wholesome: 1.0
+      smile: 0.8
+    min_relevance_threshold: 0.3
+    min_furry_cards: 8
+
+  aesthetic_cute:
+    name: "Cute & Wholesome Vibes"
+    description: "Deck built around cute, wholesome, and positive artwork"
+    colors: ["W", "U", "G"]  # Bant - colorful and optimistic
+    tag_weights:
+      cute: 2.5
+      smile: 2.0
+      wholesome: 2.5
+      soft: 1.5
+      uwu: 2.0
+      happy: 1.5
+      child_like: 1.2
+      friendly: 1.0
+    min_relevance_threshold: 0.4
+    min_lgbtq_cards: 0  # Optional for this theme
+    min_furry_cards: 0
+
+  anthropomorphic_focus:
+    name: "Fully Anthropomorphic"
+    description: "Deck featuring humanoid creatures and animal people"
+    colors: ["R", "U"]  # Izzet - anything goes, high magic
+    tag_weights:
+      anthropomorphic: 3.0
+      humanoid: 2.5
+      furry: 2.5
+      person: 2.0
+      # Subcomponents
+      bear: 1.0
+      cat: 1.0
+      wolf: 1.0
+      dragon: 1.0
+      # Support
+      cute: 0.8
+      smile: 0.7
+    min_relevance_threshold: 0.4
+    min_furry_cards: 15
+
+# Shared defaults applied to all themes
+defaults:
+  deck_size: 100
+  min_ramp_cards: 8
+  min_removal_cards: 6
+  min_draw_cards: 4
+  allow_untagged: true  # Include cards even if Tagger has no data
+  prefer_visible_representations: true  # Favor directly visible tags over inferred
+  mana_curve_type: "balanced"  # balanced, aggressive, grindy, control
+  land_count: 36
+  max_cmc: 7
+
+# Tag categories for logical grouping
+tag_categories:
+  representation:
+    - achillean
+    - sapphic
+    - trans_male
+    - trans_female
+    - romantic_couple
+    - person_of_color
+    - nonbinary
+
+  furry:
+    - anthropomorphic
+    - furry
+    - bear
+    - cat
+    - wolf
+    - dog
+    - fox
+    - rabbit
+    - ferret
+    - praying_mantis
+    - insectoid
+
+  aesthetic:
+    - cute
+    - smile
+    - wholesome
+    - soft
+    - uwu
+    - happy
+    - friendly
+    - expressive
+    - silly
+    - whimsical
+
+  art_style:
+    - visual_pun
+    - easter_egg
+    - expressive
+    - cartoon_style
+    - detailed
+    - minimalist
+
+  creatures:
+    - animal
+    - humanoid
+    - person
+    - child_like
+    - elderly
+    - angel
+    - demon
+    - elf
+    - dwarf
+    - human
+
+  nature:
+    - forest
+    - nature
+    - plant
+    - flower
+    - water
+    - sky
+    - storm
