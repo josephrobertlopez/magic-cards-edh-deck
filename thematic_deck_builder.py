@@ -70,6 +70,30 @@ class ThematicDeckBuilder:
         """Initialize Scryfall API client."""
         return None  # Use requests directly
 
+    @staticmethod
+    def _extract_all_tag_names(tags_data):
+        """Extract all tag names including ancestors from tag data."""
+        if not tags_data:
+            return []
+
+        all_tags = set()
+
+        # Add direct artwork tags
+        for tag in tags_data.get('artwork_tags', []):
+            all_tags.add(tag['name'])
+            # Add ancestor tags
+            for ancestor in tag.get('ancestor_tags', []):
+                all_tags.add(ancestor['name'])
+
+        # Add direct card tags
+        for tag in tags_data.get('card_tags', []):
+            all_tags.add(tag['name'])
+            # Add ancestor tags
+            for ancestor in tag.get('ancestor_tags', []):
+                all_tags.add(ancestor['name'])
+
+        return list(all_tags)
+
     def find_cards_by_tag(self, tag_name: str) -> List[Dict]:
         """Find cards with a specific tag, sorted by relevance."""
         logger.info(f"Searching for cards with tag: {tag_name}")
@@ -325,7 +349,7 @@ class ThematicDeckBuilder:
                         'tags': tags or {},
                         'thematic_score': score,
                         'is_legendary': True,
-                        'tags_found': [t['name'] for t in (tags or {}).get('artwork_tags', [])] if tags else [],
+                        'tags_found': self._extract_all_tag_names(tags),
                     })
                     time.sleep(0.05)
                 except Exception as e:
@@ -370,7 +394,7 @@ class ThematicDeckBuilder:
                             'color_identity': card.get('color_identity', []),
                             'tags': tags or {},
                             'thematic_score': score,
-                            'tags_found': [t['name'] for t in (tags or {}).get('artwork_tags', [])] if tags else [],
+                            'tags_found': self._extract_all_tag_names(tags),
                         }
                         candidates.append(candidate)
                         if not tags:
